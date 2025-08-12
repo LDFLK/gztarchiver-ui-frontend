@@ -49,9 +49,13 @@ const Home = () => {
     <div className="p-6">
       <div className="bg-gray-100 p-4 rounded-lg">
         <h1 className="text-2xl font-bold mb-4">Home</h1>
-        <h2 className="text-lg font-semibold mb-2">Fetched Data:</h2>
+        <h2 className="text-lg font-semibold mb-2">Available Years:</h2>
         <pre className="bg-white p-3 rounded border overflow-auto text-sm">
-          {JSON.stringify(data, null, 2)}
+          {data.doc_collections.map((collection, index) => (
+              <li key={index} className="py-1 px-2 border-b last:border-b-0">
+                {collection}
+              </li>
+            ))}
         </pre>
       </div>
     </div>
