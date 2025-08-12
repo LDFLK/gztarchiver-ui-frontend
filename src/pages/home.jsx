@@ -10,10 +10,13 @@ const Home = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+
+    const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/"
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/documents');
+        const response = await fetch(`${apiUrl}/documents`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

@@ -11,13 +11,14 @@ const CollectionPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/"
     const fetchCollectionData = async () => {
       try {
         setLoading(true);
         setError(null);
         
         // Make fetch request using the collection name
-        const response = await fetch(`/api/documents/${collection}`);
+        const response = await fetch(`${apiUrl}/documents/${collection}`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
