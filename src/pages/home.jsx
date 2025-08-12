@@ -1,0 +1,61 @@
+import { useEffect, useState } from "react";
+
+const Home = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/documents');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Home</h1>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Home</h1>
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
+  
+   return ( 
+    <div className="p-6">
+      <div className="bg-gray-100 p-4 rounded-lg">
+        <h1 className="text-2xl font-bold mb-4">Home</h1>
+        <h2 className="text-lg font-semibold mb-2">Fetched Data:</h2>
+        <pre className="bg-white p-3 rounded border overflow-auto text-sm">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </div>
+    </div>
+     );
+}
+ 
+export default Home;
