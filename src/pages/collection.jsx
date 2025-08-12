@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import DocumentCard from '../components/doc_card';
 
 const CollectionPage = () => {
   const { collection } = useParams(); // Get collection name from URL
@@ -98,44 +99,18 @@ const CollectionPage = () => {
         </button>
         
         <h1 className="text-2xl font-bold mb-4">Collection: {collection}</h1>
-        
-        <div className="bg-white p-4 rounded border">
-          <h2 className="text-lg font-semibold mb-3">Collection Data</h2>
-          
-          {/* Display the fetched data */}
-          <pre className="bg-gray-50 p-3 rounded border overflow-auto text-sm mb-4">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-          
-          {/* If data has specific structure, you can render it more nicely */}
-          {data && (
-            <div className="space-y-3">
-              <div>
-                <strong>Collection Name:</strong> {collection}
-              </div>
-              
-              {/* Example: If your API returns documents array */}
-              {data.documents && (
-                <div>
-                  <strong>Documents ({data.documents.length}):</strong>
-                  <ul className="mt-2 space-y-1">
-                    {data.documents.map((doc, index) => (
-                      <li key={index} className="ml-4">
-                        • {doc.title || doc.name || `Document ${index + 1}`}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {/* Example: If your API returns total count */}
-              {data.total && (
-                <div>
-                  <strong>Total Items:</strong> {data.total}
-                </div>
-              )}
-            </div>
-          )}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 bg-white p-4">
+          {data.map((doc) => (
+            <DocumentCard
+          key={doc.id}
+          documentId={doc.document_id}
+          date={doc.document_date}
+          type={doc.document_type}
+          reasoning={doc.reasoning}
+          gdriveUrl={doc.gdrive_file_url}
+          downloadUrl={doc.download_url}
+        />
+          ))}
         </div>
       </div>
     </div>

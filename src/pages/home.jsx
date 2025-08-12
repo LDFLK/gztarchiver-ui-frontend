@@ -31,6 +31,10 @@ const Home = () => {
     fetchData();
   }, []);
 
+  const extractYear = (collection) => {
+    const yearMatch = collection.match(/(\d{4})/);
+    return yearMatch ? yearMatch[1] : null;
+  };
   
   const handleCollectionClick = (collection) => {
     navigate(`/${collection}`);
@@ -56,21 +60,26 @@ const Home = () => {
   
    return ( 
     <div className="p-6">
-      <div className="bg-gray-100 p-4 rounded-lg">
-        <h1 className="text-2xl font-bold mb-4">Home</h1>
-        <h2 className="text-lg font-semibold mb-2">Available Years:</h2>
-        <pre className="bg-white p-3 rounded border overflow-auto text-sm">
-          {data.doc_collections.map((collection, index) => (
-              <li 
-              key={index}
-              className="py-1 px-2 border-b last:border-b-0 hover:cursor-pointer"
-              onClick={() => handleCollectionClick(collection)}>
-                {collection}
-              </li>
-            ))}
-        </pre>
-      </div>
-    </div>
+  <div className="bg-white p-6 rounded-xl shadow-md">
+    <h1 className="text-2xl font-bold mb-4">Home</h1>
+
+    <h2 className="text-lg font-semibold mb-3">Available Years:</h2>
+
+    <ul className="space-y-2">
+      {data.doc_collections.map((collection, index) => (
+        
+        <li
+          key={index}
+          onClick={() => handleCollectionClick(collection)}
+          className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
+        >
+          {extractYear(collection)}
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>
+
      );
 }
  
