@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
+
+  const navigate = useNavigate();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,6 +31,11 @@ const Home = () => {
     fetchData();
   }, []);
 
+  
+  const handleCollectionClick = (collection) => {
+    navigate(`/${collection}`);
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -52,7 +61,10 @@ const Home = () => {
         <h2 className="text-lg font-semibold mb-2">Available Years:</h2>
         <pre className="bg-white p-3 rounded border overflow-auto text-sm">
           {data.doc_collections.map((collection, index) => (
-              <li key={index} className="py-1 px-2 border-b last:border-b-0">
+              <li 
+              key={index}
+              className="py-1 px-2 border-b last:border-b-0 hover:cursor-pointer"
+              onClick={() => handleCollectionClick(collection)}>
                 {collection}
               </li>
             ))}
