@@ -69,8 +69,7 @@ const Home = () => {
     <h2 className="text-lg font-semibold mb-3">Available Years:</h2>
 
     <ul className="space-y-2">
-      {data.doc_collections.map((collection, index) => (
-        
+      {data.doc_collections.slice().sort((a, b) => extractYear(b) - extractYear(a)).map((collection, index) => (
         <li
           key={index}
           onClick={() => handleCollectionClick(collection)}
