@@ -8,7 +8,7 @@ const DocumentCard = ({ documentId, date, type, gdriveUrl, downloadUrl }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          <h3 className="text-gray-900 font-medium">DOC {documentId}</h3>
+          <h3 className="text-gray-900 font-medium">GAZETTE {documentId}</h3>
         </div>
         <span className="text-xs text-gray-400 font-mono">{date}</span>
       </div>
