@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PreLoader from "../components/pre_loader";
+// import PreLoader from "../components/pre_loader";
 
 const Home = () => {
 
@@ -55,19 +55,41 @@ const Home = () => {
   if (loading) {
     return (
       <div className="min-h-screen p-8">
-        <div className="bg-white p-6 rounded-xl">
-        <h1 className="text-2xl font-bold mb-4">
-      <img
-      src="/public/logo.png"
-      alt="company-logo"
-      className="w-8 h-8 inline-block me-2"
-      />
-      gztarchiver - Lanka Data Foundation
-      </h1>
-      <PreLoader />
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white/70 backdrop-blur-sm  rounded-3xl p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+                <img src="/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
+              <div>
+                <h1 className="text-xl font-medium text-gray-900">gztarchiver</h1>
+                <p className="text-sm text-gray-500">Lanka Data Foundation</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Years Section */}
+          <div className="mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-6">Available Years</h2>
+             <div className="flex items-center justify-center h-32">
+            <div className="flex flex-col items-center space-y-4">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+          </div>
+          </div>
+
+          {/* Footer info */}
+          <div className="pt-6 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">
+              Select a year to view available documents
+            </p>
+          </div>
+        </div>
       </div>
-        
-      </div>
+    </div>
+
+
+
     );
   }
 
@@ -79,7 +101,7 @@ const Home = () => {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-                <img src="/public/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
+                <img src="/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
               <div>
                 <h1 className="text-xl font-medium text-gray-900">gztarchiver</h1>
                 <p className="text-sm text-gray-500">Lanka Data Foundation</p>
@@ -123,7 +145,7 @@ const Home = () => {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-                <img src="/public/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
+                <img src="/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
               <div>
                 <h1 className="text-xl font-medium text-gray-900">gztarchiver</h1>
                 <p className="text-sm text-gray-500">Lanka Data Foundation</p>
