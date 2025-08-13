@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PreLoader from "../components/pre_loader";
 
 const Home = () => {
 
@@ -43,45 +44,142 @@ const Home = () => {
     navigate(`/${collection}`);
   };
 
+   const [selectedYear, setSelectedYear] = useState(null);
+
+  const handleYearClick = (collection) => {
+    const year = extractYear(collection);
+    setSelectedYear(year);
+    handleCollectionClick(collection);
+  };
+
   if (loading) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Home</h1>
-        <p>Loading...</p>
+      <div className="min-h-screen p-8">
+        <div className="bg-white p-6 rounded-xl">
+        <h1 className="text-2xl font-bold mb-4">
+      <img
+      src="/public/logo.png"
+      alt="company-logo"
+      className="w-8 h-8 inline-block me-2"
+      />
+      gztarchiver - Lanka Data Foundation
+      </h1>
+      <PreLoader />
+      </div>
+        
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Home</h1>
-        <p className="text-red-500">Error: {error}</p>
+      <div className="min-h-screen p-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white/70 backdrop-blur-sm  rounded-3xl p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+                <img src="/public/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
+              <div>
+                <h1 className="text-xl font-medium text-gray-900">gztarchiver</h1>
+                <p className="text-sm text-gray-500">Lanka Data Foundation</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Years Section */}
+          <div className="mb-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h2 className="text-lg font-semibold text-red-500 mb-2">Error Loading Data</h2>
+            <p className="text-red-500">Failed to load years data: {error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-sm text-red-500 cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+          </div>
+
+          {/* Footer info */}
+          <div className="pt-6 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">
+              Select a year to view available documents
+            </p>
+          </div>
+        </div>
       </div>
+    </div>
+
+
+
     );
   }
   
    return ( 
-    <div className="p-6">
-  <div className="bg-white p-6 rounded-xl shadow-md">
-    <h1 className="text-2xl font-bold mb-4">🧪 gztarchiver</h1>
+    <div className="min-h-screen p-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white/70 backdrop-blur-sm  rounded-3xl p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+                <img src="/public/logo.png" alt="company-logo" className="w-8 h-8 inline-block me-2"/>
+              <div>
+                <h1 className="text-xl font-medium text-gray-900">gztarchiver</h1>
+                <p className="text-sm text-gray-500">Lanka Data Foundation</p>
+              </div>
+            </div>
+          </div>
 
-    <h2 className="text-lg font-semibold mb-3">Available Years:</h2>
+          {/* Years Section */}
+          <div className="mb-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-6">Available Years</h2>
+            
+            <div className="space-y-3">
+              {data?.doc_collections?.slice().sort((a, b) => extractYear(b) - extractYear(a)).map((collection, index) => {
+                const year = extractYear(collection);
+                const isSelected = selectedYear === year;
+                
+                return (
+                  <div
+                    key={index}
+                    onClick={() => handleYearClick(collection)}
+                    className={`group relative px-6 py-4 rounded-2xl cursor-pointer transition-all duration-300 ${
+                      isSelected 
+                        ? 'bg-gray-900 text-white shadow-lg' 
+                        : 'bg-gray-50/50 hover:bg-white hover:shadow-md border border-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`font-medium ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                        {year}
+                      </span>
+                      <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        isSelected 
+                          ? 'bg-white' 
+                          : 'bg-gray-300 group-hover:bg-gray-400'
+                      }`}></div>
+                    </div>
+                    
+                    {/* Subtle hover indicator */}
+                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full transition-all duration-300 ${
+                      isSelected ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+                    }`}></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-    <ul className="space-y-2">
-      {data.doc_collections.slice().sort((a, b) => extractYear(b) - extractYear(a)).map((collection, index) => (
-        <li
-          key={index}
-          onClick={() => handleCollectionClick(collection)}
-          className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
-        >
-         📍 {extractYear(collection)}
-        </li>
-      ))}
-    </ul>
-  </div>
-</div>
-
+          {/* Footer info */}
+          <div className="pt-6 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">
+              Select a year to view available documents
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
      );
 }
  
