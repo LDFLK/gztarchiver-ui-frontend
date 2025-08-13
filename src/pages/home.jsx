@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Database, CircleX } from "lucide-react";
+
 // import PreLoader from "../components/pre_loader";
 
 const Home = () => {
@@ -112,7 +114,8 @@ const Home = () => {
           {/* Years Section */}
           <div className="mb-6">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-red-500 mb-2">Error Loading Data</h2>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-red-500 mb-2">
+              <CircleX className="w-5 h-5 text-red-500" />Error Loading Data</h2>
             <p className="text-red-500">Failed to load years data: {error}</p>
             <button 
               onClick={() => window.location.reload()}
@@ -155,13 +158,13 @@ const Home = () => {
 
           {/* Years Section */}
           <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Available Years</h2>
-            
-            <div className="space-y-3">
+            {data?.doc_collections && data.doc_collections.length > 0 ? (
+              <>
+              <h2 className="text-lg font-medium text-gray-900 mb-6">Available Years</h2>
+              <div className="space-y-3">
               {data?.doc_collections?.slice().sort((a, b) => extractYear(b) - extractYear(a)).map((collection, index) => {
                 const year = extractYear(collection);
                 const isSelected = selectedYear === year;
-                
                 return (
                   <div
                     key={index}
@@ -191,6 +194,23 @@ const Home = () => {
                 );
               })}
             </div>
+              </>              
+            ) : (
+              <div className="mb-6">
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-500 mb-2">
+             <Database className="w-5 h-5 text-gray-500" /> No Data Found</h2>
+            <p className="text-gray-500">We couldn't find any data to display right now. This might be temporary - try refreshing to see if new data is available.</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 transition-all duration-100 rounded text-sm text-white cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+          </div>
+            )}
+            
           </div>
 
           {/* Footer info */}

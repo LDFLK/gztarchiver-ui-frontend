@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DocumentCard from '../components/doc_card';
-import PreLoader from '../components/pre_loader';
+// import PreLoader from '../components/pre_loader';
 import { MoveLeft } from 'lucide-react';
+import { CircleX } from "lucide-react";
+
 
 const CollectionPage = () => {
   const { collection } = useParams(); // Get collection name from URL
@@ -83,7 +85,8 @@ const CollectionPage = () => {
            <MoveLeft className="w-6 h-6 text-gray-500" />
         </button>
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-red-500 mb-2">Error Loading Data</h2>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-red-500 mb-2">
+               <CircleX className="w-5 h-5 text-red-500" /> Error Loading Data</h2>
             <p className="text-red-500">Failed to load {extractYear(collection)} data: {error}</p>
             <button 
               onClick={() => window.location.reload()}
