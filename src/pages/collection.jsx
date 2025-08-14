@@ -373,12 +373,12 @@ const CollectionPage = () => {
                   </button>
                 </span>
               )}
-              {filters.year && (
+              {filters.day && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                  Year: {filters.year}
+                  Day: {filters.day}
                   <button
                     onClick={() =>
-                      setFilters((prev) => ({ ...prev, year: "" }))
+                      setFilters((prev) => ({ ...prev, day: "" }))
                     }
                     className="text-blue-600 hover:text-blue-800"
                   >
