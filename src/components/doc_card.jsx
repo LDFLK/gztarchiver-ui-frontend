@@ -1,14 +1,21 @@
+import { useNavigate } from "react-router-dom";
 
-import React from 'react';
+const DocumentCard = ({ doc_id, documentId, date, type, gdriveUrl, downloadUrl, collection }) => {
 
-const DocumentCard = ({ documentId, date, type, gdriveUrl, downloadUrl }) => {
+  const navigate = useNavigate();
+
+  const navigateSingleDoc = () => {
+    navigate(`/${collection}/${doc_id}`)
+  }
+
   return (
     <div className="bg-white/70 backdrop-blur-sm border border-gray-100 rounded-2xl p-6 hover:bg-white/90 hover:border-gray-200 hover:shadow-lg transition-all duration-300 group">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 hover:cursor-pointer" 
+        onClick={navigateSingleDoc}>
           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          <h3 className="text-gray-900 font-medium">GAZETTE {documentId}</h3>
+          <h3 className="text-gray-900 font-medium hover:text-blue-500 transition-all duration-100 ease-in-out cursor-pointer">GAZETTE {documentId}</h3>
         </div>
         <span className="text-xs text-gray-400 font-mono">{date}</span>
       </div>

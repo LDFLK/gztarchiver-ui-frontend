@@ -46,7 +46,7 @@ const Home = () => {
     navigate(`/${collection}`);
   };
 
-   const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
 
   const handleYearClick = (collection) => {
     const year = extractYear(collection);

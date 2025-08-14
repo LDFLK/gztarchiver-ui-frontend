@@ -173,7 +173,7 @@ const CollectionPage = () => {
           <MoveLeft className="w-6 h-6 text-gray-500" />
         </button>
         <h1 className="text-2xl font-medium text-gray-900 mb-2">
-          Documents - {extractYear(collection)}
+          Gazettes - {extractYear(collection)}
         </h1>
         <p className="text-sm text-gray-500 mb-8">{data?.length || 0} items</p>
 
@@ -408,12 +408,14 @@ const CollectionPage = () => {
           {filteredData.map((doc) => (
             <DocumentCard
               key={doc.id}
+              doc_id={doc.id}
               documentId={doc.document_id}
               date={doc.document_date}
               type={doc.document_type}
               reasoning={doc.reasoning}
               gdriveUrl={doc.gdrive_file_url}
               downloadUrl={doc.download_url}
+              collection={collection}
             />
           ))}
         </div>
