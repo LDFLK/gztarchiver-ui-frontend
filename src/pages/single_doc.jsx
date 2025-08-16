@@ -154,7 +154,7 @@ const SingleDoc = () => {
           </div>
         </div>
         <div className="">
-          {data?.reasoning ? (
+          {data?.reasoning && data.reasoning !== "NOT-FOUND" ? (
             <div className="prose max-w-none mb-6">
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {data.reasoning}
@@ -170,13 +170,13 @@ const SingleDoc = () => {
           )}
 
           {/* Document Links Section */}
-          {(data?.gdrive_file_url || data?.download_url) && (
+          {(data?.file_path || data?.download_url) && (
             <div className="border-t border-gray-200 pt-4">
               <h3 className="text-sm font-medium text-gray-900 mb-3">
                 Quick Actions
               </h3>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                {data?.gdrive_file_url && (
+                {data?.file_path && (
                   <a
                     href={data.gdrive_file_url}
                     target="_blank"
@@ -184,15 +184,33 @@ const SingleDoc = () => {
                     className="inline-flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Open in Google Drive
+                    Open in LDF Archive
                   </a>
                 )}
                 {data?.download_url && (
                   <a
-                    href={data.download_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                    href={
+                      data.download_url !== "N/A"
+                        ? data.download_url
+                        : undefined
+                    }
+                    target={data.download_url !== "N/A" ? "_blank" : undefined}
+                    rel={
+                      data.download_url !== "N/A"
+                        ? "noopener noreferrer"
+                        : undefined
+                    }
+                    className={`inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors 
+            ${
+              data.download_url !== "N/A"
+                ? "text-gray-600 hover:text-gray-700 hover:bg-gray-50 cursor-pointer"
+                : "text-gray-400 bg-gray-100 cursor-not-allowed"
+            }`}
+                    onClick={(e) => {
+                      if (data.download_url === "N/A") {
+                        e.preventDefault(); // block navigation
+                      }
+                    }}
                   >
                     <Download className="w-4 h-4" />
                     Download File
