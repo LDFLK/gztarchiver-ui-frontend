@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-const DocumentCard = ({ doc_id, documentId, date, type, gdriveUrl, downloadUrl, collection }) => {
+const DocumentCard = ({ doc_id, documentId, description, date, type, file_path, downloadUrl, collection }) => {
 
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ const DocumentCard = ({ doc_id, documentId, date, type, gdriveUrl, downloadUrl, 
       {/* Actions */}
       <div className="flex gap-2">
         <a
-          href={gdriveUrl}
+          href={file_path}
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1 text-center py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors duration-200"

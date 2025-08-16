@@ -410,11 +410,13 @@ const CollectionPage = () => {
               key={doc.id}
               doc_id={doc.id}
               documentId={doc.document_id}
+              description={doc.description}
               date={doc.document_date}
               type={doc.document_type}
               reasoning={doc.reasoning}
-              gdriveUrl={doc.gdrive_file_url}
+              file_path={doc.file_path}
               downloadUrl={doc.download_url}
+              availability={doc.availability}
               collection={collection}
             />
           ))}
