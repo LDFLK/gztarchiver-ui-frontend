@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Download,
   Eye,
+  FileSliders,
 } from "lucide-react";
 
 const SingleDoc = () => {
@@ -170,7 +171,7 @@ const SingleDoc = () => {
           )}
 
           {/* Document Links Section */}
-          {(data?.file_path || data?.download_url) && (
+          {(data?.file_path || data?.download_url || data?.source) && (
             <div className="border-t border-gray-200 pt-4">
               <h3 className="text-sm font-medium text-gray-900 mb-3">
                 Quick Actions
@@ -178,13 +179,50 @@ const SingleDoc = () => {
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 {data?.file_path && (
                   <a
-                    href={data.file_path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                    href={data.file_path !== "N/A" ? data.file_path : undefined}
+                    target={data.file_path !== "N/A" ? "_blank" : undefined}
+                    rel={
+                      data.file_path !== "N/A"
+                        ? "noopener noreferrer"
+                        : undefined
+                    }
+                    className={`inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors 
+      ${
+        data.download_url !== "N/A"
+          ? "text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+          : "text-gray-400 bg-gray-100 cursor-not-allowed"
+      }`}
+                    onClick={(e) => {
+                      if (data.download_url === "N/A") {
+                        e.preventDefault(); // block navigation
+                      }
+                    }}
                   >
                     <ExternalLink className="w-4 h-4" />
                     Open in LDF Archive
+                  </a>
+                )}
+                {data?.source && (
+                  <a
+                    href={data.source !== "N/A" ? data.source : undefined}
+                    target={data.source !== "N/A" ? "_blank" : undefined}
+                    rel={
+                      data.source !== "N/A" ? "noopener noreferrer" : undefined
+                    }
+                    className={`inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors 
+      ${
+        data.source !== "N/A"
+          ? "text-purple-600 hover:text-purple-700 hover:bg-purple-50 cursor-pointer"
+          : "text-gray-400 bg-gray-100 cursor-not-allowed"
+      }`}
+                    onClick={(e) => {
+                      if (data.source === "N/A") {
+                        e.preventDefault(); // block navigation
+                      }
+                    }}
+                  >
+                    <FileSliders className="w-4 h-4" />
+                    Source
                   </a>
                 )}
                 {data?.download_url && (
