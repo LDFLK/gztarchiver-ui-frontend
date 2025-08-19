@@ -178,7 +178,7 @@ const SingleDoc = () => {
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 {data?.file_path && (
                   <a
-                    href={data.gdrive_file_url}
+                    href={data.file_path}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
