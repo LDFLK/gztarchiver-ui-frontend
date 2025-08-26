@@ -1,10 +1,20 @@
-// import React, { useState, useEffect } from "react";
+// import { useState, useEffect } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
 // import DocumentCard from "../components/doc_card";
-// import { SlidersHorizontal, ChevronDown, X, CircleX, MoveLeft } from "lucide-react";
+// import {
+//   SlidersHorizontal,
+//   ChevronDown,
+//   X,
+//   CircleX,
+//   MoveLeft,
+//   ChevronLeft,
+//   ChevronRight,
+//   ChevronsLeft,
+//   ChevronsRight,
+// } from "lucide-react";
 
 // const CollectionPage = () => {
-//   const { collection } = useParams(); // Get collection name from URL
+//   const { collection } = useParams();
 //   const navigate = useNavigate();
 
 //   const [searchQuery, setSearchQuery] = useState("");
@@ -14,38 +24,84 @@
 //     day: "",
 //     type: "",
 //   });
-//   const [data, setData] = useState(null);
+//   const [data, setData] = useState([]);
+//   const [filterData, setFilterData] = useState([]);
+//   const [pagination, setPagination] = useState(null);
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState(null);
 
-//   useEffect(() => {
-//     const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
-//     const fetchCollectionData = async () => {
-//       try {
-//         setLoading(true);
-//         setError(null);
+//   // Pagination state
+//   const [currentPage, setCurrentPage] = useState(1);
+//   const [pageSize, setPageSize] = useState(20);
 
-//         // Make fetch request using the collection name
-//         const response = await fetch(`${apiUrl}/documents/${collection}`);
+//   // Fetch data function
+//   const fetchCollectionData = async (page = 1, limit = pageSize) => {
+//     try {
+//       setLoading(true);
+//       setError(null);
 
-//         if (!response.ok) {
-//           throw new Error(`HTTP error! status: ${response.status}`);
-//         }
+//       const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
+//       const offset = (page - 1) * limit;
 
-//         const result = await response.json();
-//         setData(result);
-//       } catch (err) {
-//         setError(err.message);
-//         console.error("Error fetching collection data:", err);
-//       } finally {
-//         setLoading(false);
+//       // Build URL with pagination parameters
+//       const url = `${apiUrl}/documents/${collection}?limit=${limit}&offset=${offset}`;
+//       const response = await fetch(url);
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP error! status: ${response.status}`);
 //       }
-//     };
 
-//     if (collection) {
-//       fetchCollectionData();
+//       const result = await response.json();
+
+//       if (result.pagination) {
+//         // Paginated response
+//         setData(result.documents || []);
+//         setPagination(result.pagination);
+//       } else {
+//         // Non-paginated response (fallback)
+//         setData(result.documents || result || []);
+//         setPagination(null);
+//       }
+//     } catch (err) {
+//       setError(err.message);
+//       console.error("Error fetching collection data:", err);
+//     } finally {
+//       setLoading(false);
 //     }
-//   }, [collection]); // Refetch when collection parameter changes
+//   };
+
+//   const fetchFiltersForCollection = async () => {
+//     try {
+//       setLoading(true);
+//       setError(null);
+
+//       const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
+
+//       // Build URL with pagination parameters
+//       const url = `${apiUrl}/documents/filters/${collection}`;
+//       const response = await fetch(url);
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP error! status: ${response.status}`);
+//       }
+
+//       const result = await response.json();
+//       setFilterData(result);
+//     } catch (err) {
+//       setError(err.message);
+//       console.error("Error fetching collection filter data:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Initial load and page changes
+//   useEffect(() => {
+//     if (collection) {
+//       fetchCollectionData(currentPage, pageSize);
+//       fetchFiltersForCollection();
+//     }
+//   }, [collection, currentPage, pageSize]);
 
 //   const goBack = () => {
 //     navigate("/");
@@ -56,50 +112,40 @@
 //     return yearMatch ? yearMatch[1] : null;
 //   };
 
-//   // Get unique values for filter options - with null checks
-//   const uniqueTypes = data
-//     ? [...new Set(data.map((doc) => doc.document_type))]
-//     : [];
-//   const uniqueMonths = data
-//     ? [
-//         ...new Set(
-//           data.map((doc) => {
-//             const date = new Date(doc.document_date);
-//             return date.toLocaleString("default", { month: "long" });
-//           })
-//         ),
-//       ]
-//     : [];
-//   const uniqueDays = data
-//     ? [
-//         ...new Set(
-//           data.map((doc) => {
-//             const date = new Date(doc.document_date);
-//             return date.getDate().toString().padStart(2, '0');
-//           })
-//         ),
-//       ]
-//     : [];
+//   // Set filters from the API response safely
+//   const uniqueTypes = filterData?.document_types || [];
 
-//   // Filter data based on search query and filters - with null checks
-//   const filteredData = data
-//     ? data.filter((doc) => {
-//         const matchesSearch =
-//           doc.document_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-//           doc.reasoning.toLowerCase().includes(searchQuery.toLowerCase()) ||
-//           doc.document_id.toLowerCase().includes(searchQuery.toLowerCase());
+//   // Convert month numbers to month names safely
+//   const uniqueMonths =
+//     filterData?.months?.map((month) =>
+//       new Date(0, month - 1).toLocaleString("default", { month: "long" })
+//     ) || [];
 
-//         const docDate = new Date(doc.document_date);
-//         const docMonth = docDate.toLocaleString("default", { month: "long" });
-//         const docDay = docDate.getDate().toString().padStart(2, '0');
+//   // Convert days to 2-digit strings safely
+//   const uniqueDays =
+//     filterData?.days?.map((day) => day.toString().padStart(2, "0")) || [];
 
-//         const matchesMonth = !filters.month || docMonth === filters.month;
-//         const matchesDay = !filters.day || docDay === filters.day;
-//         const matchesType = !filters.type || doc.document_type === filters.type;
+//   console.log("Types:", uniqueTypes);
+//   console.log("Months:", uniqueMonths);
+//   console.log("Days:", uniqueDays);
 
-//         return matchesSearch && matchesMonth && matchesDay && matchesType;
-//       })
-//     : [];
+//   // Filter data based on search query and filters
+//   const filteredData = data.filter((doc) => {
+//     const matchesSearch =
+//       doc.document_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+//       doc.reasoning.toLowerCase().includes(searchQuery.toLowerCase()) ||
+//       doc.document_id.toLowerCase().includes(searchQuery.toLowerCase());
+
+//     const docDate = new Date(doc.document_date);
+//     const docMonth = docDate.toLocaleString("default", { month: "long" });
+//     const docDay = docDate.getDate().toString().padStart(2, "0");
+
+//     const matchesMonth = !filters.month || docMonth === filters.month;
+//     const matchesDay = !filters.day || docDay === filters.day;
+//     const matchesType = !filters.type || doc.document_type === filters.type;
+
+//     return matchesSearch && matchesMonth && matchesDay && matchesType;
+//   });
 
 //   const clearFilters = () => {
 //     setFilters({
@@ -110,6 +156,176 @@
 //   };
 
 //   const hasActiveFilters = filters.month || filters.day || filters.type;
+
+//   // Pagination handlers
+//   const handlePageChange = (newPage) => {
+//     setCurrentPage(newPage);
+//     window.scrollTo({ top: 0, behavior: "smooth" });
+//   };
+
+//   const handlePageSizeChange = (newSize) => {
+//     setPageSize(newSize);
+//     setCurrentPage(1); // Reset to first page when changing page size
+//   };
+
+//   // Pagination component
+//   const PaginationControls = () => {
+//     if (!pagination || pagination.total_pages <= 1) return null;
+
+//     const { current_page, total_pages, has_previous, has_next } = pagination;
+
+//     // Generate page numbers to show
+//     const getPageNumbers = () => {
+//       const pages = [];
+//       const maxVisible = 5;
+
+//       if (total_pages <= maxVisible) {
+//         for (let i = 1; i <= total_pages; i++) {
+//           pages.push(i);
+//         }
+//       } else {
+//         if (current_page <= 3) {
+//           for (let i = 1; i <= 4; i++) {
+//             pages.push(i);
+//           }
+//           pages.push("...");
+//           pages.push(total_pages);
+//         } else if (current_page >= total_pages - 2) {
+//           pages.push(1);
+//           pages.push("...");
+//           for (let i = total_pages - 3; i <= total_pages; i++) {
+//             pages.push(i);
+//           }
+//         } else {
+//           pages.push(1);
+//           pages.push("...");
+//           for (let i = current_page - 1; i <= current_page + 1; i++) {
+//             pages.push(i);
+//           }
+//           pages.push("...");
+//           pages.push(total_pages);
+//         }
+//       }
+//       return pages;
+//     };
+
+//     return (
+//       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-200">
+//         {/* Page info and page size selector */}
+//         <div className="flex items-center gap-4 text-sm text-gray-600">
+//           <span>
+//             Showing {(current_page - 1) * pageSize + 1} to{" "}
+//             {Math.min(current_page * pageSize, pagination.total_count)} of{" "}
+//             {pagination.total_count} results
+//           </span>
+//           <div className="flex items-center gap-2">
+//             <label>Show:</label>
+//             <div className="relative">
+//               <select
+//                 value={pageSize}
+//                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+//                 className="px-2 py-1 border border-gray-300 rounded text-sm appearance-none pr-8"
+//               >
+//                 <option value={10}>10</option>
+//                 <option value={20}>20</option>
+//                 <option value={50}>50</option>
+//                 <option value={100}>100</option>
+//               </select>
+//               {/* Custom dropdown arrow */}
+//               <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+//                 <svg
+//                   className="w-4 h-4 text-gray-500"
+//                   fill="none"
+//                   stroke="currentColor"
+//                   strokeWidth="2"
+//                   viewBox="0 0 24 24"
+//                 >
+//                   <path
+//                     strokeLinecap="round"
+//                     strokeLinejoin="round"
+//                     d="M19 9l-7 7-7-7"
+//                   />
+//                 </svg>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Pagination controls */}
+//         <div className="flex items-center gap-1">
+//           {/* First page */}
+//           <button
+//             onClick={() => handlePageChange(1)}
+//             disabled={!has_previous}
+//             className={`p-2 rounded ${
+//               !has_previous
+//                 ? "text-gray-400 cursor-not-allowed"
+//                 : "text-gray-600 hover:bg-gray-100"
+//             }`}
+//           >
+//             <ChevronsLeft className="w-4 h-4" />
+//           </button>
+
+//           {/* Previous page */}
+//           <button
+//             onClick={() => handlePageChange(current_page - 1)}
+//             disabled={!has_previous}
+//             className={`p-2 rounded ${
+//               !has_previous
+//                 ? "text-gray-400 cursor-not-allowed"
+//                 : "text-gray-600 hover:bg-gray-100"
+//             }`}
+//           >
+//             <ChevronLeft className="w-4 h-4" />
+//           </button>
+
+//           {/* Page numbers */}
+//           {getPageNumbers().map((page, index) => (
+//             <button
+//               key={index}
+//               onClick={() => typeof page === "number" && handlePageChange(page)}
+//               disabled={page === "..."}
+//               className={`px-3 py-2 rounded text-sm ${
+//                 page === current_page
+//                   ? "bg-black text-white"
+//                   : page === "..."
+//                   ? "text-gray-400 cursor-default"
+//                   : "text-gray-600 hover:bg-gray-100"
+//               }`}
+//             >
+//               {page}
+//             </button>
+//           ))}
+
+//           {/* Next page */}
+//           <button
+//             onClick={() => handlePageChange(current_page + 1)}
+//             disabled={!has_next}
+//             className={`p-2 rounded ${
+//               !has_next
+//                 ? "text-gray-400 cursor-not-allowed"
+//                 : "text-gray-600 hover:bg-gray-100"
+//             }`}
+//           >
+//             <ChevronRight className="w-4 h-4" />
+//           </button>
+
+//           {/* Last page */}
+//           <button
+//             onClick={() => handlePageChange(total_pages)}
+//             disabled={!has_next}
+//             className={`p-2 rounded ${
+//               !has_next
+//                 ? "text-gray-400 cursor-not-allowed"
+//                 : "text-gray-600 hover:bg-gray-100"
+//             }`}
+//           >
+//             <ChevronsRight className="w-4 h-4" />
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   };
 
 //   // Loading state
 //   if (loading) {
@@ -175,7 +391,11 @@
 //         <h1 className="text-2xl font-medium text-gray-900 mb-2">
 //           Gazettes - {extractYear(collection)}
 //         </h1>
-//         <p className="text-sm text-gray-500 mb-8">{data?.length || 0} items</p>
+//         <p className="text-sm text-gray-500 mb-8">
+//           {pagination ? pagination.total_count : data.length} items
+//           {pagination &&
+//             ` • Page ${pagination.current_page} of ${pagination.total_pages}`}
+//         </p>
 
 //         {/* Search and Filter Section */}
 //         <div className="mb-6 space-y-4">
@@ -268,7 +488,7 @@
 //                   </div>
 //                 </div>
 
-//                 {/* Year Filter */}
+//                 {/* Day Filter */}
 //                 <div>
 //                   <label className="block text-xs font-medium text-gray-700 mb-2">
 //                     Day
@@ -377,9 +597,7 @@
 //                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
 //                   Day: {filters.day}
 //                   <button
-//                     onClick={() =>
-//                       setFilters((prev) => ({ ...prev, day: "" }))
-//                     }
+//                     onClick={() => setFilters((prev) => ({ ...prev, day: "" }))}
 //                     className="text-blue-600 hover:text-blue-800"
 //                   >
 //                     <X className="w-3 h-3" />
@@ -430,6 +648,9 @@
 //             </p>
 //           </div>
 //         )}
+
+//         {/* Pagination Controls */}
+//         <PaginationControls />
 //       </div>
 //     </div>
 //   );
@@ -437,7 +658,9 @@
 
 // export default CollectionPage;
 
-import React, { useState, useEffect } from "react";
+
+
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DocumentCard from "../components/doc_card";
 import {
@@ -450,30 +673,50 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Search,
 } from "lucide-react";
 
 const CollectionPage = () => {
   const { collection } = useParams();
   const navigate = useNavigate();
 
+  // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     month: "",
     day: "",
     type: "",
   });
+
+  // Data states
   const [data, setData] = useState([]);
+  const [filterData, setFilterData] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Pagination state
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Fetch data function
-  const fetchCollectionData = async (page = 1, limit = pageSize) => {
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, filters.month, filters.day, filters.type]);
+
+  // Fetch data function with server-side filtering
+  const fetchCollectionData = useCallback(async (page = 1, limit = pageSize) => {
     try {
       setLoading(true);
       setError(null);
@@ -481,8 +724,23 @@ const CollectionPage = () => {
       const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
       const offset = (page - 1) * limit;
 
-      // Build URL with pagination parameters
-      const url = `${apiUrl}/documents/${collection}?limit=${limit}&offset=${offset}`;
+      // Build URL with pagination and filter parameters
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
+
+      // Add search parameter if exists
+      if (debouncedSearchQuery.trim()) {
+        params.append("search", debouncedSearchQuery.trim());
+      }
+
+      // Add filter parameters if they exist
+      if (filters.month) params.append("month", filters.month);
+      if (filters.day) params.append("day", filters.day);
+      if (filters.type) params.append("type", filters.type);
+
+      const url = `${apiUrl}/documents/${collection}?${params.toString()}`;
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -506,14 +764,38 @@ const CollectionPage = () => {
     } finally {
       setLoading(false);
     }
+  }, [collection, debouncedSearchQuery, filters, pageSize]);
+
+  const fetchFiltersForCollection = async () => {
+    try {
+      const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
+      const url = `${apiUrl}/documents/filters/${collection}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setFilterData(result);
+    } catch (err) {
+      console.error("Error fetching collection filter data:", err);
+    }
   };
 
-  // Initial load and page changes
+  // Initial load and when dependencies change
   useEffect(() => {
     if (collection) {
       fetchCollectionData(currentPage, pageSize);
     }
-  }, [collection, currentPage, pageSize]);
+  }, [collection, currentPage, pageSize, debouncedSearchQuery, filters, fetchCollectionData]);
+
+  // Load filter data once
+  useEffect(() => {
+    if (collection) {
+      fetchFiltersForCollection();
+    }
+  }, [collection]);
 
   const goBack = () => {
     navigate("/");
@@ -524,42 +806,18 @@ const CollectionPage = () => {
     return yearMatch ? yearMatch[1] : null;
   };
 
-  // Get unique values for filter options
-  const uniqueTypes = [...new Set(data.map((doc) => doc.document_type))];
-  const uniqueMonths = [
-    ...new Set(
-      data.map((doc) => {
-        const date = new Date(doc.document_date);
-        return date.toLocaleString("default", { month: "long" });
-      })
-    ),
-  ];
-  const uniqueDays = [
-    ...new Set(
-      data.map((doc) => {
-        const date = new Date(doc.document_date);
-        return date.getDate().toString().padStart(2, "0");
-      })
-    ),
-  ];
+  // Set filters from the API response safely
+  const uniqueTypes = filterData?.document_types || [];
 
-  // Filter data based on search query and filters
-  const filteredData = data.filter((doc) => {
-    const matchesSearch =
-      doc.document_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.reasoning.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.document_id.toLowerCase().includes(searchQuery.toLowerCase());
+  // Convert month numbers to month names safely
+  const uniqueMonths =
+    filterData?.months?.map((month) =>
+      new Date(0, month - 1).toLocaleString("default", { month: "long" })
+    ) || [];
 
-    const docDate = new Date(doc.document_date);
-    const docMonth = docDate.toLocaleString("default", { month: "long" });
-    const docDay = docDate.getDate().toString().padStart(2, "0");
-
-    const matchesMonth = !filters.month || docMonth === filters.month;
-    const matchesDay = !filters.day || docDay === filters.day;
-    const matchesType = !filters.type || doc.document_type === filters.type;
-
-    return matchesSearch && matchesMonth && matchesDay && matchesType;
-  });
+  // Convert days to 2-digit strings safely
+  const uniqueDays =
+    filterData?.days?.map((day) => day.toString().padStart(2, "0")) || [];
 
   const clearFilters = () => {
     setFilters({
@@ -569,7 +827,19 @@ const CollectionPage = () => {
     });
   };
 
+  const clearSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+  };
+
+  const clearAll = () => {
+    clearSearch();
+    clearFilters();
+  };
+
   const hasActiveFilters = filters.month || filters.day || filters.type;
+  const hasActiveSearch = debouncedSearchQuery.trim();
+  const hasAnyActive = hasActiveFilters || hasActiveSearch;
 
   // Pagination handlers
   const handlePageChange = (newPage) => {
@@ -579,7 +849,7 @@ const CollectionPage = () => {
 
   const handlePageSizeChange = (newSize) => {
     setPageSize(newSize);
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
   };
 
   // Pagination component
@@ -588,7 +858,6 @@ const CollectionPage = () => {
 
     const { current_page, total_pages, has_previous, has_next } = pagination;
 
-    // Generate page numbers to show
     const getPageNumbers = () => {
       const pages = [];
       const maxVisible = 5;
@@ -625,50 +894,36 @@ const CollectionPage = () => {
 
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-200">
-        {/* Page info and page size selector */}
         <div className="flex items-center gap-4 text-sm text-gray-600">
           <span>
             Showing {(current_page - 1) * pageSize + 1} to{" "}
             {Math.min(current_page * pageSize, pagination.total_count)} of{" "}
             {pagination.total_count} results
+            {hasAnyActive && " (filtered)"}
           </span>
           <div className="flex items-center gap-2">
-  <label>Show:</label>
-  <div className="relative">
-    <select
-      value={pageSize}
-      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-      className="px-2 py-1 border border-gray-300 rounded text-sm appearance-none pr-8"
-    >
-      <option value={10}>10</option>
-      <option value={20}>20</option>
-      <option value={50}>50</option>
-      <option value={100}>100</option>
-    </select>
-    {/* Custom dropdown arrow */}
-    <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-      <svg
-        className="w-4 h-4 text-gray-500"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M19 9l-7 7-7-7"
-        />
-      </svg>
-    </div>
-  </div>
-</div>
-
+            <label>Show:</label>
+            <div className="relative">
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="px-2 py-1 border border-gray-300 rounded text-sm appearance-none pr-8"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Pagination controls */}
         <div className="flex items-center gap-1">
-          {/* First page */}
           <button
             onClick={() => handlePageChange(1)}
             disabled={!has_previous}
@@ -681,7 +936,6 @@ const CollectionPage = () => {
             <ChevronsLeft className="w-4 h-4" />
           </button>
 
-          {/* Previous page */}
           <button
             onClick={() => handlePageChange(current_page - 1)}
             disabled={!has_previous}
@@ -694,7 +948,6 @@ const CollectionPage = () => {
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* Page numbers */}
           {getPageNumbers().map((page, index) => (
             <button
               key={index}
@@ -712,7 +965,6 @@ const CollectionPage = () => {
             </button>
           ))}
 
-          {/* Next page */}
           <button
             onClick={() => handlePageChange(current_page + 1)}
             disabled={!has_next}
@@ -725,7 +977,6 @@ const CollectionPage = () => {
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          {/* Last page */}
           <button
             onClick={() => handlePageChange(total_pages)}
             disabled={!has_next}
@@ -743,7 +994,7 @@ const CollectionPage = () => {
   };
 
   // Loading state
-  if (loading) {
+  if (loading && !data.length) {
     return (
       <div className="min-h-screen p-8 max-w-2xl mx-auto">
         <div className="p-4 rounded-lg">
@@ -756,6 +1007,7 @@ const CollectionPage = () => {
           <div className="flex items-center justify-center h-32">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <p className="text-gray-500">Loading documents...</p>
             </div>
           </div>
         </div>
@@ -803,27 +1055,47 @@ const CollectionPage = () => {
         >
           <MoveLeft className="w-6 h-6 text-gray-500" />
         </button>
+        
         <h1 className="text-2xl font-medium text-gray-900 mb-2">
           Gazettes - {extractYear(collection)}
         </h1>
-        <p className="text-sm text-gray-500 mb-8">
-          {pagination ? pagination.total_count : data.length} items
-          {pagination &&
-            ` • Page ${pagination.current_page} of ${pagination.total_pages}`}
-        </p>
+        
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+          <span>
+            {pagination ? pagination.total_count : data.length} items
+            {pagination && ` • Page ${pagination.current_page} of ${pagination.total_pages}`}
+          </span>
+          {loading && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <span className="text-blue-600">Searching...</span>
+            </div>
+          )}
+        </div>
 
         {/* Search and Filter Section */}
         <div className="mb-6 space-y-4">
           {/* Search Bar with Filter Button */}
           <div className="flex gap-3">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-3 flex items-center">
+                <Search className="w-4 h-4 text-gray-400" />
+              </div>
               <input
                 type="text"
-                placeholder="Search documents"
+                placeholder="Search documents, IDs, types, or reasoning..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-300"
+                className="w-full pl-10 pr-10 py-3 border border-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-300"
               />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -854,7 +1126,7 @@ const CollectionPage = () => {
                     className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
                   >
                     <X className="w-3 h-3" />
-                    Clear all
+                    Clear filters
                   </button>
                 )}
               </div>
@@ -883,21 +1155,9 @@ const CollectionPage = () => {
                         </option>
                       ))}
                     </select>
-
-                    {/* Custom dropdown arrow */}
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
@@ -926,21 +1186,9 @@ const CollectionPage = () => {
                         </option>
                       ))}
                     </select>
-
-                    {/* Custom dropdown arrow */}
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
@@ -969,21 +1217,9 @@ const CollectionPage = () => {
                         </option>
                       ))}
                     </select>
-
-                    {/* Custom dropdown arrow */}
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
@@ -993,8 +1229,19 @@ const CollectionPage = () => {
           )}
 
           {/* Active Filters Display */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2">
+          {(hasActiveSearch || hasActiveFilters) && (
+            <div className="flex flex-wrap gap-2 items-center">
+              {hasActiveSearch && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                  Search: "{debouncedSearchQuery}"
+                  <button
+                    onClick={clearSearch}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
               {filters.month && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                   Month: {filters.month}
@@ -1032,13 +1279,21 @@ const CollectionPage = () => {
                   </button>
                 </span>
               )}
+              {hasAnyActive && (
+                <button
+                  onClick={clearAll}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
           )}
         </div>
 
         {/* Documents Grid */}
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 bg-white">
-          {filteredData.map((doc) => (
+          {data.map((doc) => (
             <DocumentCard
               key={doc.id}
               doc_id={doc.id}
@@ -1056,11 +1311,32 @@ const CollectionPage = () => {
         </div>
 
         {/* No results message */}
-        {filteredData.length === 0 && data && data.length > 0 && (
+        {data.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500">
-              No documents found matching your criteria.
-            </p>
+            <div className="bg-gray-50 rounded-lg p-8">
+              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No documents found
+              </h3>
+              {hasAnyActive ? (
+                <div className="space-y-2">
+                  <p className="text-gray-500">
+                    No documents match your current search criteria.
+                  </p>
+                  <button
+                    onClick={clearAll}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear all filters
+                  </button>
+                </div>
+              ) : (
+                <p className="text-gray-500">
+                  No documents available in this collection.
+                </p>
+              )}
+            </div>
           </div>
         )}
 
