@@ -447,7 +447,7 @@ const Home = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="w-full pl-10 sm:pl-14 pr-20 sm:pr-28 py-3 sm:py-4 text-sm sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
+                  className="w-full pl-10 sm:pl-14 pr-20 sm:pr-28 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
                   focus:outline-none focus:ring-0 focus:ring-black
                   focus:shadow-lg transition-shadow duration-200
                   bg-white/80 backdrop-blur-sm placeholder-gray-400 placeholder:font-thin font-thin"
