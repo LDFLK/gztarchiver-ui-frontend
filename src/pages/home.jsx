@@ -489,71 +489,110 @@ const Home = () => {
               }`}
             >
               {!hasSearched && (
-                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full max-w-6xl mx-auto">
-                  {error ? (
-                    <>
-                      <ErrorCard />
-                      <ErrorCard />
-                      <ErrorCard />
-                    </>
-                  ) : loading ? (
-                    <>
-                      <SkeletonCard />
-                      <SkeletonCard />
-                      <SkeletonCard />
-                    </>
-                  ) : (
-                    stats.map((stat, index) => (
-                      <div
-                        key={index}
-                        className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 hover:shadow-lg cursor-pointer"
-                        style={{
-                          transitionDelay: `${index * 100}ms`,
-                        }}
-                      >
-                        <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                          <div className="flex-shrink-0">{stat.icon}</div>
-                          <div className="space-y-1 sm:space-y-2">
-                            {stat.value === "languages" ? (
-                              <>
-                                <p className="text-xs sm:text-sm font-light text-gray-600">
-                                  {stat.title}
-                                </p>
-                                <div className="flex flex-wrap justify-center gap-1">
-                                  {languages.map((language, langIndex) => (
-                                    <span
-                                      key={langIndex}
-                                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
-                                    >
-                                      {language}
-                                    </span>
-                                  ))}
-                                </div>
-                                <p className="text-xs font-thin text-gray-500">
-                                  {stat.description}
-                                </p>
-                              </>
-                            ) : (
-                              <>
-                                <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                                  {stat.value}
-                                </h3>
-                                <p className="text-xs sm:text-sm font-light text-gray-600">
-                                  {stat.title}
-                                </p>
-                                <p className="text-xs font-thin text-gray-500">
-                                  {stat.description}
-                                </p>
-                              </>
-                            )}
+                <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
+                  {/* Top row - 3 stat cards */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
+                    {error ? (
+                      <>
+                        <ErrorCard />
+                        <ErrorCard />
+                        <ErrorCard />
+                      </>
+                    ) : loading ? (
+                      <>
+                        <SkeletonCard />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                      </>
+                    ) : (
+                      stats.map((stat, index) => (
+                        <div
+                          key={index}
+                          className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 hover:shadow-lg cursor-pointer"
+                          style={{
+                            transitionDelay: `${index * 100}ms`,
+                          }}
+                        >
+                          <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                            <div className="flex-shrink-0">{stat.icon}</div>
+                            <div className="space-y-1 sm:space-y-2">
+                              {stat.value === "languages" ? (
+                                <>
+                                  <p className="text-xs sm:text-sm font-light text-gray-600">
+                                    {stat.title}
+                                  </p>
+                                  <div className="flex flex-wrap justify-center gap-1">
+                                    {languages.map((language, langIndex) => (
+                                      <span
+                                        key={langIndex}
+                                        className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
+                                      >
+                                        {language}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <p className="text-xs font-thin text-gray-500">
+                                    {stat.description}
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
+                                    {stat.value}
+                                  </h3>
+                                  <p className="text-xs sm:text-sm font-light text-gray-600">
+                                    {stat.title}
+                                  </p>
+                                  <p className="text-xs font-thin text-gray-500">
+                                    {stat.description}
+                                  </p>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Bottom row - 2 cards with different widths */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
+                    {/* Card spanning 2/3 width */}
+                    <div className="sm:col-span-2 bg-white border border-gray-100 rounded-lg p-4 sm:p-6 transition-all duration-200 hover:shadow-lg cursor-pointer">
+                      <div className="flex flex-col space-y-3">
+                        <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
+                          Wide Card Title
+                        </h3>
+                        <p className="text-xs sm:text-sm font-light text-gray-600">
+                          This card spans the width of 2 stat cards
+                        </p>
+                        <p className="text-xs font-thin text-gray-500">
+                          Additional content can go here with more details and information.
+                        </p>
                       </div>
-                    ))
-                  )}
+                    </div>
+
+                    {/* Card spanning 1/3 width */}
+                    <div className="sm:col-span-1 bg-white border border-gray-100 rounded-lg p-4 sm:p-6 transition-all duration-200 hover:shadow-lg cursor-pointer">
+                      <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                        <div className="space-y-1 sm:space-y-2">
+                          <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
+                            Single Card
+                          </h3>
+                          <p className="text-xs sm:text-sm font-light text-gray-600">
+                            Normal width card
+                          </p>
+                          <p className="text-xs font-thin text-gray-500">
+                            Same width as one stat card
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
+      
 
             {/* Search Results Section */}
             <div
