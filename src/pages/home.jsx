@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Database,
-  CircleX,
+  X,
   Search,
   FileArchive,
   FileText,
-  Users,
   Calendar,
   Globe,
-  ExternalLink,
-  Download,
   BarChart3,
 } from "lucide-react";
 
@@ -23,7 +19,7 @@ const Home = () => {
   const [languages, setLanguages] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchResults, setSearchResults] = useState(null); // Changed from null to []
+  const [searchResults, setSearchResults] = useState([]);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
@@ -31,10 +27,7 @@ const Home = () => {
     }
   };
 
-  // Add this debugging code to your handleSearch function:
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
     setLoading(true);
     setHasSearched(true);
 
@@ -45,7 +38,7 @@ const Home = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify({ query: searchQuery.trim() }),
       });
 
       if (!response.ok) {
@@ -53,12 +46,6 @@ const Home = () => {
       }
 
       const data = await response.json();
-
-      // DEBUG: Log the actual API response structure
-      console.log("API Response:", data);
-      console.log("Type of data:", typeof data);
-      console.log("Is array:", Array.isArray(data));
-      console.log("Has results property:", data.hasOwnProperty("results"));
 
       setSearchResults(data);
     } catch (error) {
@@ -71,9 +58,13 @@ const Home = () => {
 
   const handleBack = () => {
     setHasSearched(false);
-    setSearchResults([]); // Changed from null to []
+    setSearchResults([]);
     setSearchQuery("");
     navigate("/");
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
   };
 
   useEffect(() => {
@@ -131,17 +122,10 @@ const Home = () => {
   const SkeletonCard = () => (
     <div className="bg-white border border-gray-100 rounded-lg p-6 w-full sm:flex-1">
       <div className="flex flex-col items-center text-center space-y-3">
-        {/* Icon skeleton */}
         <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-
         <div className="space-y-2 w-full">
-          {/* Title skeleton */}
           <div className="h-4 bg-gray-200 rounded animate-pulse w-24 mx-auto"></div>
-
-          {/* Value skeleton */}
           <div className="h-6 bg-gray-200 rounded animate-pulse w-16 mx-auto"></div>
-
-          {/* Description skeleton */}
           <div className="h-3 bg-gray-200 rounded animate-pulse w-32 mx-auto"></div>
         </div>
       </div>
@@ -167,23 +151,16 @@ const Home = () => {
     </div>
   );
 
-  // Update your SearchResults component to handle the correct structure:
   const SearchResults = ({ query, results, onBack }) => {
-    // Add debugging
-    console.log("SearchResults received:", results);
-
-    // Handle both possible API response structures
     const searchData = results?.results || results || [];
 
-    console.log("Processed searchData:", searchData);
-
-    if (!Array.isArray(searchData) || searchData.length === 0) {
+    if (!Array.isArray(searchData) || (searchData.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-12">
           <p className="text-gray-500">No results found for "{query}"</p>
           <button
             onClick={onBack}
-            className="mt-4 text-sm text-blue-500 hover:text-blue-700"
+            className="mt-4 text-sm text-blue-500 hover:text-blue-700 hover:cursor-pointer"
           >
             ← Back to Home
           </button>
@@ -191,67 +168,69 @@ const Home = () => {
       );
     }
 
-    return (
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-thin text-gray-700">
-            Search Results for "{query}" ({searchData.length} found)
-          </h2>
-          <button
-            onClick={onBack}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer"
-          >
-            ← Back to Home
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {searchData.map((item, index) => (
-            <div
-              key={item.id || index}
-              className="bg-white border border-gray-100 rounded-lg p-6 hover:shadow-lg transition-shadow"
+    if (!loading) {
+      return (
+        <div className="w-full max-w-6xl mx-auto">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-thin text-gray-700">
+              Search Results for "{query}" ({searchData.length} found)
+            </h2>
+            <button
+              onClick={onBack}
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer"
             >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileArchive className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {item.description || "No description"}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3">
-                    Document Type: {item.document_type || "Unknown"} | Source:{" "}
-                    <a
-                      href={item.source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      View Source
-                    </a>
-                  </p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>ID: {item.document_id || "N/A"}</span>
-                    <span>Type: {item.document_type || "Unknown"}</span>
-                    <span>Date: {item.document_date || "N/A"}</span>
-                    {item.download_url && (
+              ← Back to Home
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {searchData.map((item, index) => (
+              <div
+                key={item.id || index}
+                className="bg-white border border-gray-100 rounded-lg p-6 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {item.description || "No description"}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Document Type: {item.document_type || "Unknown"} | Source:{" "}
                       <a
-                        href={item.download_url}
+                        href={item.source}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:underline"
                       >
-                        Download
+                        View Source
                       </a>
-                    )}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span>ID: {item.document_id || "N/A"}</span>
+                      <span>Type: {item.document_type || "Unknown"}</span>
+                      <span>Date: {item.document_date || "N/A"}</span>
+                      {item.download_url && (
+                        <a
+                          href={item.download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
+                        >
+                          Download
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   };
 
   return (
@@ -296,13 +275,22 @@ const Home = () => {
                   placeholder="Search documents, IDs, types, date, or reasoning..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   className="w-full pl-14 pr-28 py-4 text-md border border-gray-100 rounded-2xl
                   focus:outline-none focus:ring-0 focus:ring-black
                   focus:shadow-lg transition-shadow duration-200
                   bg-white/80 backdrop-blur-sm placeholder-gray-400 placeholder:font-thin font-thin"
                 />
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" />
+                {/* Clear button (X) only if there's text */}
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-27 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
                 <button
                   onClick={handleSearch}
                   className="absolute right-0 top-0 h-full bg-gray-800 hover:bg-gray-900 hover:cursor-pointer text-white px-6 rounded-r-2xl text-sm font-thin transition-colors duration-200 focus:outline-none"
