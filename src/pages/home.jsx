@@ -386,6 +386,16 @@ const Home = () => {
                           Download
                         </a>
                       )}
+                      {item.file_path && (
+                        <a
+                          href={item.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
+                        >
+                          View
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -456,7 +466,7 @@ const Home = () => {
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
-                    className="absolute right-16 sm:right-27 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+                    className="absolute right-20 sm:right-27 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hover:cursor-pointer"
                   >
                     <X className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
