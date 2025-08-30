@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   X,
   Search,
@@ -8,10 +7,13 @@ import {
   Calendar,
   Globe,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 
 const Home = () => {
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,16 +22,28 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    total_pages: 0,
+    total_count: 0,
+    limit: 50,
+    has_next: false,
+    has_prev: false,
+    start_index: 0,
+    end_index: 0
+  });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      handleSearch();
+      handleSearch(1); // Reset to first page on new search
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (page = 1) => {
     setLoading(true);
     setHasSearched(true);
+    setCurrentPage(page);
 
     try {
       const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
@@ -38,7 +52,11 @@ const Home = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: searchQuery.trim() }),
+        body: JSON.stringify({ 
+          query: searchQuery.trim(),
+          page: page,
+          limit: 50
+        }),
       });
 
       if (!response.ok) {
@@ -47,12 +65,38 @@ const Home = () => {
 
       const data = await response.json();
 
-      setSearchResults(data);
+      setSearchResults(data.results || []);
+      setPagination(data.pagination || {
+        current_page: 1,
+        total_pages: 0,
+        total_count: 0,
+        limit: 50,
+        has_next: false,
+        has_prev: false,
+        start_index: 0,
+        end_index: 0
+      });
     } catch (error) {
       console.error("Error fetching search results:", error);
-      setSearchResults(null);
+      setSearchResults([]);
+      setPagination({
+        current_page: 1,
+        total_pages: 0,
+        total_count: 0,
+        limit: 50,
+        has_next: false,
+        has_prev: false,
+        start_index: 0,
+        end_index: 0
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage !== currentPage && newPage >= 1 && newPage <= pagination.total_pages) {
+      handleSearch(newPage);
     }
   };
 
@@ -60,7 +104,17 @@ const Home = () => {
     setHasSearched(false);
     setSearchResults([]);
     setSearchQuery("");
-    navigate("/");
+    setCurrentPage(1);
+    setPagination({
+      current_page: 1,
+      total_pages: 0,
+      total_count: 0,
+      limit: 50,
+      has_next: false,
+      has_prev: false,
+      start_index: 0,
+      end_index: 0
+    });
   };
 
   const clearSearch = () => {
@@ -118,6 +172,105 @@ const Home = () => {
     fetchDashboardStats();
   }, []);
 
+  // Pagination component
+  const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
+    if (pagination.total_pages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const totalPages = pagination.total_pages;
+      const current = currentPage;
+      
+      // Always show first page
+      pages.push(1);
+      
+      if (current > 4) {
+        pages.push('...');
+      }
+      
+      // Show pages around current page
+      const start = Math.max(2, current - 1);
+      const end = Math.min(totalPages - 1, current + 1);
+      
+      for (let i = start; i <= end; i++) {
+        if (!pages.includes(i)) {
+          pages.push(i);
+        }
+      }
+      
+      if (current < totalPages - 3) {
+        pages.push('...');
+      }
+      
+      // Always show last page if more than 1 page
+      if (totalPages > 1 && !pages.includes(totalPages)) {
+        pages.push(totalPages);
+      }
+      
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-center gap-2 mt-8">
+        {/* First page */}
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          className="p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronsLeft className="w-4 h-4" />
+        </button>
+
+        {/* Previous page */}
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={!pagination.has_prev}
+          className="p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Page numbers */}
+        <div className="flex items-center gap-1">
+          {getPageNumbers().map((page, index) => (
+            <button
+              key={index}
+              onClick={() => page !== '...' && onPageChange(page)}
+              disabled={page === '...'}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                page === currentPage
+                  ? 'bg-gray-800 text-white hover:cursor-pointer'
+                  : page === '...'
+                  ? 'cursor-default text-gray-400'
+                  : 'border-none hover:cursor-pointer border-gray-200 hover:bg-gray-50 text-gray-700'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+
+        {/* Next page */}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={!pagination.has_next}
+          className="p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
+        {/* Last page */}
+        <button
+          onClick={() => onPageChange(pagination.total_pages)}
+          disabled={currentPage === pagination.total_pages}
+          className="p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronsRight className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
+
   // Skeleton component
   const SkeletonCard = () => (
     <div className="bg-white border border-gray-100 rounded-lg p-6 w-full sm:flex-1">
@@ -136,13 +289,10 @@ const Home = () => {
   const ErrorCard = () => (
     <div className="bg-white border border-gray-100 rounded-lg p-6 w-full sm:flex-1">
       <div className="flex flex-col items-center text-center space-y-3">
-        {/* Icon skeleton */}
         <div>
           <BarChart3 className="w-5 h-5 text-gray-400" />
         </div>
-
         <h3 className="text-sm font-light text-gray-400">No Stats Found</h3>
-
         <p className="text-xs font-light text-gray-400 max-w-xs">
           Looks like there's no data available to show right now, This can be a
           error from db or try refreshing...
@@ -151,10 +301,8 @@ const Home = () => {
     </div>
   );
 
-  const SearchResults = ({ query, results, onBack }) => {
-    const searchData = results?.results || results || [];
-
-    if (!Array.isArray(searchData) || (searchData.length === 0 && !loading)) {
+  const SearchResults = ({ query, results, pagination, currentPage, onPageChange, onBack }) => {
+    if (!Array.isArray(results) || (results.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-12">
           <p className="text-gray-500">No results found for "{query}"</p>
@@ -172,9 +320,22 @@ const Home = () => {
       return (
         <div className="w-full max-w-6xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-thin text-gray-700">
-              Search Results for "{query}" ({searchData.length} found)
-            </h2>
+            <div>
+              <h2 className="text-2xl font-thin text-gray-700 mb-2">
+                Search Results for "{query}"
+              </h2>
+              {pagination.total_count > 0 && (
+                <p className="text-sm text-gray-500 font-light">
+                  <span className="font-medium text-gray-700">
+                    {pagination.total_count.toLocaleString()}
+                  </span>{' '}
+                  records found - showing{' '}
+                  <span className="font-medium text-gray-700">
+                    {pagination.start_index} - {pagination.end_index}
+                  </span>
+                </p>
+              )}
+            </div>
             <button
               onClick={onBack}
               className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer"
@@ -184,7 +345,7 @@ const Home = () => {
           </div>
 
           <div className="space-y-4">
-            {searchData.map((item, index) => (
+            {results.map((item, index) => (
               <div
                 key={item.id || index}
                 className="bg-white border border-gray-100 rounded-lg p-6 hover:shadow-lg transition-shadow"
@@ -228,6 +389,13 @@ const Home = () => {
               </div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          <PaginationControls
+            pagination={pagination}
+            currentPage={currentPage}
+            onPageChange={onPageChange}
+          />
         </div>
       );
     }
@@ -282,7 +450,6 @@ const Home = () => {
                   bg-white/80 backdrop-blur-sm placeholder-gray-400 placeholder:font-thin font-thin"
                 />
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" />
-                {/* Clear button (X) only if there's text */}
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
@@ -292,7 +459,7 @@ const Home = () => {
                   </button>
                 )}
                 <button
-                  onClick={handleSearch}
+                  onClick={() => handleSearch(1)}
                   className="absolute right-0 top-0 h-full bg-gray-800 hover:bg-gray-900 hover:cursor-pointer text-white px-6 rounded-r-2xl text-sm font-thin transition-colors duration-200 focus:outline-none"
                 >
                   Search
@@ -385,8 +552,11 @@ const Home = () => {
             >
               {hasSearched && searchResults && (
                 <SearchResults
-                  query={searchQuery}
+                  query={searchQuery.trim()}
                   results={searchResults}
+                  pagination={pagination}
+                  currentPage={currentPage}
+                  onPageChange={handlePageChange}
                   onBack={handleBack}
                 />
               )}
