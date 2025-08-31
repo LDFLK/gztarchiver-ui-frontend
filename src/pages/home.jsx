@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   X,
+  Users,
   Search,
   FileArchive,
   FileText,
@@ -11,8 +12,14 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Filter,
+  Hash,
+  MessageCircle,
+  Clock,
+  ScanSearch,
+  ChevronDown,
+  Building
 } from "lucide-react";
-
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
@@ -33,6 +40,59 @@ const Home = () => {
     end_index: 0,
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  
+  // Quick search states
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
+  const [activeFilter, setActiveFilter] = useState(null);
+  const [showLimitDropdown, setShowLimitDropdown] = useState(false);
+
+  const quickSearchOptions = [
+    { 
+      id: '2015', 
+      label: '2015', 
+      icon: Calendar, 
+      query: 'date:2015',
+      color: 'bg-blue-50 text-blue-700 border-blue-200'
+    },
+    { 
+      id: '2016', 
+      label: '2016', 
+      icon: Calendar, 
+      query: 'date:2016',
+      color: 'bg-purple-50 text-purple-700 border-purple-200'
+    },
+    { 
+      id: 'people', 
+      label: 'People', 
+      icon: Users, 
+      query: 'type:people',
+      color: 'bg-green-50 text-green-700 border-green-200'
+    },
+    { 
+      id: 'organisational', 
+      label: 'Organisational', 
+      icon: Building, 
+      query: 'type:organisational',
+      color: 'bg-orange-50 text-orange-700 border-orange-200'
+    },
+    { 
+      id: 'available', 
+      label: 'Available Only', 
+      icon: MessageCircle, 
+      query: 'available:yes',
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    },
+    { 
+      id: 'gov-source', 
+      label: 'Gov Source', 
+      icon: Hash, 
+      query: 'source:gov.lk',
+      color: 'bg-red-50 text-red-700 border-red-200'
+    }
+  ];
+
+  const limitOptions = [10, 20, 50, 100];
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
@@ -44,6 +104,7 @@ const Home = () => {
     setLoading(true);
     setHasSearched(true);
     setCurrentPage(page);
+    setShowQuickSearch(false);
 
     try {
       const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
@@ -55,7 +116,7 @@ const Home = () => {
         body: JSON.stringify({
           query: searchQuery.trim(),
           page: page,
-          limit: 50,
+          limit: limit,
         }),
       });
 
@@ -68,10 +129,10 @@ const Home = () => {
       setSearchResults(data.results || []);
       setPagination(
         data.pagination || {
-          current_page: 1,
+          current_page: page,
           total_pages: 0,
           total_count: 0,
-          limit: 50,
+          limit: limit,
           has_next: false,
           has_prev: false,
           start_index: 0,
@@ -82,10 +143,10 @@ const Home = () => {
       console.error("Error fetching search results:", error);
       setSearchResults([]);
       setPagination({
-        current_page: 1,
+        current_page: page,
         total_pages: 0,
         total_count: 0,
-        limit: 50,
+        limit: limit,
         has_next: false,
         has_prev: false,
         start_index: 0,
@@ -111,11 +172,13 @@ const Home = () => {
     setSearchResults([]);
     setSearchQuery("");
     setCurrentPage(1);
+    setActiveFilter(null);
+    setShowQuickSearch(false);
     setPagination({
       current_page: 1,
       total_pages: 0,
       total_count: 0,
-      limit: 50,
+      limit: limit,
       has_next: false,
       has_prev: false,
       start_index: 0,
@@ -125,7 +188,120 @@ const Home = () => {
 
   const clearSearch = () => {
     setSearchQuery("");
+    setActiveFilter(null);
   };
+
+  const handleQuickSearch = (option) => {
+    setSearchQuery(option.query);
+    setActiveFilter(option.id);
+    setShowQuickSearch(false);
+    setCurrentPage(1);
+    // Automatically trigger search after setting query
+    setTimeout(() => {
+      handleSearchWithQuery(option.query);
+    }, 100);
+  };
+
+  const handleSearchWithQuery = async (query) => {
+    setLoading(true);
+    setHasSearched(true);
+    setCurrentPage(1);
+
+    try {
+      const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
+      const response = await fetch(`${apiUrl}/search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: query.trim(),
+          page: 1,
+          limit: limit,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await response.json();
+
+      setSearchResults(data.results || []);
+      setPagination(
+        data.pagination || {
+          current_page: 1,
+          total_pages: 0,
+          total_count: 0,
+          limit: limit,
+          has_next: false,
+          has_prev: false,
+          start_index: 0,
+          end_index: 0,
+        }
+      );
+    } catch (error) {
+      console.error("Error fetching search results:", error);
+      setSearchResults([]);
+      setPagination({
+        current_page: 1,
+        total_pages: 0,
+        total_count: 0,
+        limit: limit,
+        has_next: false,
+        has_prev: false,
+        start_index: 0,
+        end_index: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleQuickSearch = () => {
+    setShowQuickSearch(!showQuickSearch);
+    setShowLimitDropdown(false);
+  };
+
+  const handleSearchFocus = () => {
+    if (!showQuickSearch) {
+      setShowQuickSearch(true);
+    }
+    setShowLimitDropdown(false);
+  };
+
+  const handleLimitChange = (newLimit) => {
+    setLimit(newLimit);
+    setShowLimitDropdown(false);
+    // If we have an active search, re-search with new limit
+    if (hasSearched && searchQuery.trim()) {
+      setCurrentPage(1);
+      // Update pagination to reflect new limit immediately
+      setPagination(prev => ({
+        ...prev,
+        limit: newLimit,
+        current_page: 1
+      }));
+      setTimeout(() => handleSearch(1), 100);
+    }
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.quick-search-container') && 
+          !event.target.closest('.limit-dropdown-container') &&
+          !event.target.closest('.search-input-container')) {
+        setShowQuickSearch(false);
+        setShowLimitDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
@@ -353,12 +529,39 @@ const Home = () => {
                 </p>
               )}
             </div>
-            <button
-              onClick={onBack}
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer self-start sm:self-auto"
-            >
-              ← Back to Home
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Results per page dropdown */}
+              <div className="relative limit-dropdown-container">
+                <button
+                  onClick={() => setShowLimitDropdown(!showLimitDropdown)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                >
+                  <span>{limit} per page</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showLimitDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                <div className={`absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
+                  showLimitDropdown ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                }`}>
+                  {limitOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleLimitChange(option)}
+                      className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        option === limit ? 'bg-gray-100 text-gray-900' : 'text-gray-600'
+                      }`}
+                    >
+                      {option} per page
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={onBack}
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer"
+              >
+                ← Back to Home
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3 sm:space-y-4">
@@ -472,29 +675,44 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="flex justify-center mb-6 sm:mb-8">
-              <div className="relative w-full max-w-4xl">
+            {/* Enhanced Search Section */}
+            <div className="flex flex-col items-center mb-6 sm:mb-8">
+              {/* Main Search Bar */}
+              <div className="relative w-full max-w-4xl search-input-container">
                 <input
                   type="text"
-                  placeholder="Search documents, IDs, types, date, or reasoning..."
+                  placeholder="Search documents, IDs, types, date or source..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="w-full pl-10 sm:pl-14 pr-20 sm:pr-28 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
+                  onFocus={handleSearchFocus}
+                  className="w-full pl-10 sm:pl-14 pr-32 sm:pr-40 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
                   focus:outline-none focus:ring-0 focus:ring-black
                   focus:shadow-lg transition-shadow duration-200
                   bg-white/80 backdrop-blur-sm placeholder-gray-400 placeholder:font-thin font-thin"
                 />
                 <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
-                {searchQuery && (
+                
+                {/* Quick Search Toggle & Clear Button */}
+                <div className="absolute right-20 sm:right-26 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  {searchQuery && (
+                    <button
+                      onClick={clearSearch}
+                      className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200"
+                    >
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  )}
                   <button
-                    onClick={clearSearch}
-                    className="absolute right-20 sm:right-27 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+                    onClick={toggleQuickSearch}
+                    className={`p-1 rounded-md transition-all duration-200 hover:cursor-pointer ${
+                      showQuickSearch ? 'text-gray-700 bg-gray-100 scale-105' : 'text-gray-400 hover:text-gray-600 hover:scale-105'
+                    }`}
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <ScanSearch className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                )}
+                </div>
+                
                 <button
                   onClick={() => handleSearch(1)}
                   className="absolute right-0 top-0 h-full bg-gray-800 hover:bg-gray-900 hover:cursor-pointer text-white px-4 sm:px-6 rounded-r-xl sm:rounded-r-2xl text-xs sm:text-sm font-thin transition-colors duration-200 focus:outline-none"
@@ -502,6 +720,86 @@ const Home = () => {
                   Search
                 </button>
               </div>
+
+              {/* Quick Search Options with Enhanced Animation */}
+              <div className={`w-full max-w-4xl overflow-hidden quick-search-container transition-all duration-300 ease-out rounded-xl sm:rounded-2xl shadow-lg ${
+                showQuickSearch 
+                  ? 'mt-3 sm:mt-4 max-h-96 opacity-100' 
+                  : 'mt-0 max-h-0 opacity-0'
+              }`}>
+                <div className={`bg-white/90 backdrop-blur-sm border border-gray-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 transform transition-all duration-300 ease-out ${
+                  showQuickSearch ? 'scale-100 translate-y-0' : 'scale-95 -translate-y-2'
+                }`}>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="text-sm sm:text-base font-medium text-gray-700">Quick Search</h3>
+                    <button
+                      onClick={() => setShowQuickSearch(false)}
+                      className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200 hover:scale-110"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                    {quickSearchOptions.map((option, index) => {
+                      const IconComponent = option.icon;
+                      return (
+                        <button
+                          key={option.id}
+                          onClick={() => handleQuickSearch(option)}
+                          className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:cursor-pointer ${
+                            activeFilter === option.id 
+                              ? option.color + ' shadow-md' 
+                              : 'bg-white text-gray-600 border-gray-100 hover:bg-gray-50'
+                          }`}
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <IconComponent className="w-4 h-4 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm font-medium truncate">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Search Tips */}
+                  <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-2">Search examples:</p>
+                    <div className="flex flex-wrap gap-1 sm:gap-2">
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">date:2015</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">date:2015-05</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">type:people</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">type:organisational</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">id:2030-05</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">available:yes</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">available:no</span>
+                      <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">"exact phrase"</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Filter Display */}
+              {activeFilter && (
+                <div className="w-full max-w-4xl mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm text-gray-500">Active filter:</span>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-all duration-200 ${
+                      quickSearchOptions.find(opt => opt.id === activeFilter)?.color
+                    }`}>
+                      <span>{quickSearchOptions.find(opt => opt.id === activeFilter)?.label}</span>
+                      <button
+                        onClick={() => {
+                          setActiveFilter(null);
+                          setSearchQuery('');
+                        }}
+                        className="hover:bg-black/10 rounded transition-colors duration-150"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Stats Cards with conditional rendering */}
