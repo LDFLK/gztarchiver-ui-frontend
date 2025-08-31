@@ -13,8 +13,8 @@ import {
   ChevronsRight,
 } from "lucide-react";
 
-const Home = () => {
 
+const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState([]);
@@ -30,7 +30,7 @@ const Home = () => {
     has_next: false,
     has_prev: false,
     start_index: 0,
-    end_index: 0
+    end_index: 0,
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -52,10 +52,10 @@ const Home = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: searchQuery.trim(),
           page: page,
-          limit: 50
+          limit: 50,
         }),
       });
 
@@ -66,16 +66,18 @@ const Home = () => {
       const data = await response.json();
 
       setSearchResults(data.results || []);
-      setPagination(data.pagination || {
-        current_page: 1,
-        total_pages: 0,
-        total_count: 0,
-        limit: 50,
-        has_next: false,
-        has_prev: false,
-        start_index: 0,
-        end_index: 0
-      });
+      setPagination(
+        data.pagination || {
+          current_page: 1,
+          total_pages: 0,
+          total_count: 0,
+          limit: 50,
+          has_next: false,
+          has_prev: false,
+          start_index: 0,
+          end_index: 0,
+        }
+      );
     } catch (error) {
       console.error("Error fetching search results:", error);
       setSearchResults([]);
@@ -87,7 +89,7 @@ const Home = () => {
         has_next: false,
         has_prev: false,
         start_index: 0,
-        end_index: 0
+        end_index: 0,
       });
     } finally {
       setLoading(false);
@@ -95,7 +97,11 @@ const Home = () => {
   };
 
   const handlePageChange = (newPage) => {
-    if (newPage !== currentPage && newPage >= 1 && newPage <= pagination.total_pages) {
+    if (
+      newPage !== currentPage &&
+      newPage >= 1 &&
+      newPage <= pagination.total_pages
+    ) {
       handleSearch(newPage);
     }
   };
@@ -113,7 +119,7 @@ const Home = () => {
       has_next: false,
       has_prev: false,
       start_index: 0,
-      end_index: 0
+      end_index: 0,
     });
   };
 
@@ -180,33 +186,33 @@ const Home = () => {
       const pages = [];
       const totalPages = pagination.total_pages;
       const current = currentPage;
-      
+
       // Always show first page
       pages.push(1);
-      
+
       if (current > 4) {
-        pages.push('...');
+        pages.push("...");
       }
-      
+
       // Show pages around current page
       const start = Math.max(2, current - 1);
       const end = Math.min(totalPages - 1, current + 1);
-      
+
       for (let i = start; i <= end; i++) {
         if (!pages.includes(i)) {
           pages.push(i);
         }
       }
-      
+
       if (current < totalPages - 3) {
-        pages.push('...');
+        pages.push("...");
       }
-      
+
       // Always show last page if more than 1 page
       if (totalPages > 1 && !pages.includes(totalPages)) {
         pages.push(totalPages);
       }
-      
+
       return pages;
     };
 
@@ -235,14 +241,14 @@ const Home = () => {
           {getPageNumbers().map((page, index) => (
             <button
               key={index}
-              onClick={() => page !== '...' && onPageChange(page)}
-              disabled={page === '...'}
+              onClick={() => page !== "..." && onPageChange(page)}
+              disabled={page === "..."}
               className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 page === currentPage
-                  ? 'bg-gray-800 text-white hover:cursor-pointer'
-                  : page === '...'
-                  ? 'cursor-default text-gray-400'
-                  : 'border-none hover:cursor-pointer border-gray-200 hover:bg-gray-50 text-gray-700'
+                  ? "bg-gray-800 text-white hover:cursor-pointer"
+                  : page === "..."
+                  ? "cursor-default text-gray-400"
+                  : "border-none hover:cursor-pointer border-gray-200 hover:bg-gray-50 text-gray-700"
               }`}
             >
               {page}
@@ -292,7 +298,9 @@ const Home = () => {
         <div>
           <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
         </div>
-        <h3 className="text-xs sm:text-sm font-light text-gray-400">No Stats Found</h3>
+        <h3 className="text-xs sm:text-sm font-light text-gray-400">
+          No Stats Found
+        </h3>
         <p className="text-xs font-light text-gray-400 max-w-xs">
           Looks like there's no data available to show right now, This can be a
           error from db or try refreshing...
@@ -301,11 +309,20 @@ const Home = () => {
     </div>
   );
 
-  const SearchResults = ({ query, results, pagination, currentPage, onPageChange, onBack }) => {
+  const SearchResults = ({
+    query,
+    results,
+    pagination,
+    currentPage,
+    onPageChange,
+    onBack,
+  }) => {
     if (!Array.isArray(results) || (results.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
-          <p className="text-gray-500 text-sm sm:text-base">No results found for "{query}"</p>
+          <p className="text-gray-500 text-sm sm:text-base">
+            No results found for "{query}"
+          </p>
           <button
             onClick={onBack}
             className="mt-4 text-sm text-blue-500 hover:text-blue-700 hover:cursor-pointer"
@@ -328,8 +345,8 @@ const Home = () => {
                 <p className="text-xs sm:text-sm text-gray-500 font-light">
                   <span className="font-medium text-gray-700">
                     {pagination.total_count.toLocaleString()}
-                  </span>{' '}
-                  records found - showing{' '}
+                  </span>{" "}
+                  records found - showing{" "}
                   <span className="font-medium text-gray-700">
                     {pagination.start_index} - {pagination.end_index}
                   </span>
@@ -359,9 +376,12 @@ const Home = () => {
                       {item.description || "No description"}
                     </h3>
                     <div className="text-gray-600 text-xs sm:text-sm mb-3 break-words">
-                      <span className="block sm:inline">Document Type: {item.document_type || "Unknown"}</span>
+                      <span className="block sm:inline">
+                        Document Type: {item.document_type || "Unknown"}
+                      </span>
                       <span className="hidden sm:inline"> | </span>
-                      <span className="block sm:inline">Source:{" "}
+                      <span className="block sm:inline">
+                        Source:{" "}
                         <a
                           href={item.source}
                           target="_blank"
@@ -373,7 +393,9 @@ const Home = () => {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <span className="break-all">ID: {item.document_id || "N/A"}</span>
+                      <span className="break-all">
+                        ID: {item.document_id || "N/A"}
+                      </span>
                       <span>Type: {item.document_type || "Unknown"}</span>
                       <span>Date: {item.document_date || "N/A"}</span>
                       {item.download_url && (
@@ -440,7 +462,9 @@ const Home = () => {
                 </div>
                 <h1
                   className={`font-thin text-gray-600 flex items-center transition-all duration-500 ${
-                    hasSearched ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"
+                    hasSearched
+                      ? "text-2xl sm:text-3xl"
+                      : "text-3xl sm:text-4xl"
                   }`}
                 >
                   gztarchiver
@@ -554,45 +578,9 @@ const Home = () => {
                       ))
                     )}
                   </div>
-
-                  {/* Bottom row - 2 cards with different widths */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
-                    {/* Card spanning 2/3 width */}
-                    <div className="sm:col-span-2 bg-white border border-gray-100 rounded-lg p-4 sm:p-6 transition-all duration-200 hover:shadow-lg cursor-pointer">
-                      <div className="flex flex-col space-y-3">
-                        <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                          Wide Card Title
-                        </h3>
-                        <p className="text-xs sm:text-sm font-light text-gray-600">
-                          This card spans the width of 2 stat cards
-                        </p>
-                        <p className="text-xs font-thin text-gray-500">
-                          Additional content can go here with more details and information.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Card spanning 1/3 width */}
-                    <div className="sm:col-span-1 bg-white border border-gray-100 rounded-lg p-4 sm:p-6 transition-all duration-200 hover:shadow-lg cursor-pointer">
-                      <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                        <div className="space-y-1 sm:space-y-2">
-                          <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                            Single Card
-                          </h3>
-                          <p className="text-xs sm:text-sm font-light text-gray-600">
-                            Normal width card
-                          </p>
-                          <p className="text-xs font-thin text-gray-500">
-                            Same width as one stat card
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
-      
 
             {/* Search Results Section */}
             <div
