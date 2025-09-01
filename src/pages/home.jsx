@@ -490,7 +490,7 @@ const Home = () => {
               <div className="relative limit-dropdown-container">
                 <button
                   onClick={() => setShowLimitDropdown(!showLimitDropdown)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200 hover:cursor-pointer"
                 >
                   <span>{limit} per page</span>
                   <ChevronDown
@@ -510,7 +510,7 @@ const Home = () => {
                     <button
                       key={option}
                       onClick={() => handleLimitChange(option)}
-                      className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
                         option === limit
                           ? "bg-gray-100 text-gray-900"
                           : "text-gray-600"
