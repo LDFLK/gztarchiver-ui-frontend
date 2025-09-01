@@ -1,7 +1,23 @@
-
 import { useEffect, useState } from "react";
 
-import {X, Users, Search, FileArchive, FileText, Calendar, Globe, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, MessageCircle, FileSearch, ChevronDown, Building } from "lucide-react";
+import {
+  X,
+  Users,
+  Search,
+  FileArchive,
+  FileText,
+  Calendar,
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Hash,
+  MessageCircle,
+  FileSearch,
+  ChevronDown,
+  Building,
+} from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
 import SocialMediaSidebar from "../components/socialMediaSideBar";
@@ -188,7 +204,6 @@ const Home = () => {
     setActiveFilter(option.id);
     setShowQuickSearch(false);
     setCurrentPage(1);
-    // Call search immediately with the option query
     handleSearchWithQuery(option.query);
   };
 
@@ -447,8 +462,14 @@ const Home = () => {
     );
   };
 
-
-  const SearchResults = ({query, results, pagination, currentPage, onPageChange, onBack }) => {
+  const SearchResults = ({
+    query,
+    results,
+    pagination,
+    currentPage,
+    onPageChange,
+    onBack,
+  }) => {
     if (!Array.isArray(results) || (results.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
@@ -938,4 +959,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;
