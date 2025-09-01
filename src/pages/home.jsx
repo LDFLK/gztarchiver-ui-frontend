@@ -1,26 +1,11 @@
+
 import { useEffect, useState } from "react";
-import {
-  X,
-  Users,
-  Search,
-  FileArchive,
-  FileText,
-  Calendar,
-  Globe,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  MessageSquare,
-  Linkedin, 
-  Github,
-  Hash,
-  MessageCircle,
-  FileSearch,
-  ChevronDown,
-  Building,
-} from "lucide-react";
+
+import {X, Users, Search, FileArchive, FileText, Calendar, Globe, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Hash, MessageCircle, FileSearch, ChevronDown, Building } from "lucide-react";
+
+import SkeletonCard from "../components/skeletonCard";
+import SocialMediaSidebar from "../components/socialMediaSideBar";
+import ErrorCard from "../components/errorCard";
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
@@ -101,7 +86,8 @@ const Home = () => {
     }
   };
 
-  const handleSearch = async (page = 1) => {
+  // Generic search function that accepts limit as parameter
+  const handleSearchWithLimit = async (page = 1, searchLimit = limit) => {
     setLoading(true);
     setHasSearched(true);
     setCurrentPage(page);
@@ -117,7 +103,7 @@ const Home = () => {
         body: JSON.stringify({
           query: searchQuery.trim(),
           page: page,
-          limit: limit,
+          limit: searchLimit, // Use the passed limit parameter
         }),
       });
 
@@ -133,7 +119,7 @@ const Home = () => {
           current_page: page,
           total_pages: 0,
           total_count: 0,
-          limit: limit,
+          limit: searchLimit, // Use the passed limit parameter
           has_next: false,
           has_prev: false,
           start_index: 0,
@@ -147,7 +133,7 @@ const Home = () => {
         current_page: page,
         total_pages: 0,
         total_count: 0,
-        limit: limit,
+        limit: searchLimit, // Use the passed limit parameter
         has_next: false,
         has_prev: false,
         start_index: 0,
@@ -156,6 +142,11 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Default search function using current limit state
+  const handleSearch = async (page = 1) => {
+    await handleSearchWithLimit(page, limit);
   };
 
   const handlePageChange = (newPage) => {
@@ -197,10 +188,8 @@ const Home = () => {
     setActiveFilter(option.id);
     setShowQuickSearch(false);
     setCurrentPage(1);
-    // Automatically trigger search after setting query
-    setTimeout(() => {
-      handleSearchWithQuery(option.query);
-    }, 100);
+    // Call search immediately with the option query
+    handleSearchWithQuery(option.query);
   };
 
   const handleSearchWithQuery = async (query) => {
@@ -271,10 +260,11 @@ const Home = () => {
     setShowLimitDropdown(false);
   };
 
+  // FIXED: Remove setTimeout and pass newLimit directly
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
     setShowLimitDropdown(false);
-    // If we have an active search, re-search with new limit
+    // If we have an active search, re-search with new limit immediately
     if (hasSearched && searchQuery.trim()) {
       setCurrentPage(1);
       // Update pagination to reflect new limit immediately
@@ -283,7 +273,8 @@ const Home = () => {
         limit: newLimit,
         current_page: 1,
       }));
-      setTimeout(() => handleSearch(1), 100);
+      // Call search immediately with the new limit - NO TIMEOUT!
+      handleSearchWithLimit(1, newLimit);
     }
   };
 
@@ -456,97 +447,8 @@ const Home = () => {
     );
   };
 
-  // Skeleton component
-  const SocialMediaSidebar = () => {
-    const socialLinks = [
-      {
-        icon: MessageSquare,
-        href: "https://discord.gg/yourserver",
-        label: "Discord",
-        color: "hover:bg-indigo-600",
-      },
-      {
-        icon: Linkedin,
-        href: "https://www.linkedin.com/company/lankadata/",
-        label: "LinkedIn",
-        color: "hover:bg-blue-600",
-      },
-      {
-        icon: Github,
-        href: "https://github.com/LDFLK",
-        label: "GitHub",
-        color: "hover:bg-gray-800",
-      },
-    ];
 
-    return (
-      <div className="fixed right-0 top-1/2 transform -translate-y-1/1 z-50">
-        <div className="flex flex-col bg-white/90 backdrop-blur-sm rounded-l-2xl shadow-lg border border-r-0 border-gray-200">
-          {socialLinks.map((social, index) => {
-            const IconComponent = social.icon;
-            return (
-              <a
-                key={index}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`p-3 text-gray-600 transition-all duration-200 hover:text-white ${social.color} hover:scale-110 first:rounded-tl-2xl last:rounded-bl-2xl group`}
-                title={social.label}
-              >
-                <IconComponent className="w-5 h-5" />
-
-                {/* Tooltip */}
-                <div className="absolute right-full mr-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                  {social.label}
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Skeleton component
-  const SkeletonCard = () => (
-    <div className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1">
-      <div className="flex flex-col items-center text-center space-y-3">
-        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 rounded-full animate-pulse"></div>
-        <div className="space-y-2 w-full">
-          <div className="h-3 sm:h-4 bg-gray-200 rounded animate-pulse w-20 sm:w-24 mx-auto"></div>
-          <div className="h-4 sm:h-6 bg-gray-200 rounded animate-pulse w-12 sm:w-16 mx-auto"></div>
-          <div className="h-2 sm:h-3 bg-gray-200 rounded animate-pulse w-24 sm:w-32 mx-auto"></div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Error component
-  const ErrorCard = () => (
-    <div className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1">
-      <div className="flex flex-col items-center text-center space-y-3">
-        <div>
-          <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-        </div>
-        <h3 className="text-xs sm:text-sm font-light text-gray-400">
-          No Stats Found
-        </h3>
-        <p className="text-xs font-light text-gray-400 max-w-xs">
-          Looks like there's no data available to show right now, This can be a
-          error from db or try refreshing...
-        </p>
-      </div>
-    </div>
-  );
-
-  const SearchResults = ({
-    query,
-    results,
-    pagination,
-    currentPage,
-    onPageChange,
-    onBack,
-  }) => {
+  const SearchResults = ({query, results, pagination, currentPage, onPageChange, onBack }) => {
     if (!Array.isArray(results) || (results.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
@@ -848,21 +750,6 @@ const Home = () => {
                       </p>
                       <div className="flex flex-wrap gap-1 sm:gap-2">
                         <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          date:2015
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          date:2015-05
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          type:people
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          type:organisational
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          id:2030-05
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
                           available:yes
                         </span>
                         <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
@@ -1036,4 +923,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Home; 
