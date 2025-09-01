@@ -750,6 +750,21 @@ const Home = () => {
                       </p>
                       <div className="flex flex-wrap gap-1 sm:gap-2">
                         <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                          date:2015
+                        </span>
+                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                          date:2015-05
+                        </span>
+                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                          type:people
+                        </span>
+                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                          type:organisational
+                        </span>
+                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                          id:2030-05
+                        </span>
+                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
                           available:yes
                         </span>
                         <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
