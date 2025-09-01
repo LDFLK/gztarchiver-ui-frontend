@@ -16,7 +16,7 @@ import {
   Hash,
   MessageCircle,
   Clock,
-  ScanSearch,
+  FileSearch,
   ChevronDown,
   Building
 } from "lucide-react";
@@ -709,7 +709,7 @@ const Home = () => {
                       showQuickSearch ? 'text-gray-700 bg-gray-100 scale-105' : 'text-gray-400 hover:text-gray-600 hover:scale-105'
                     }`}
                   >
-                    <ScanSearch className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <FileSearch className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
                 
