@@ -4,7 +4,7 @@ const SocialMediaSidebar = () => {
   const socialLinks = [
     {
       icon: MessageSquare,
-      href: "https://discord.gg/yourserver",
+      href: "https://discord.gg/",
       label: "Discord",
       color: "hover:bg-indigo-600",
     },
