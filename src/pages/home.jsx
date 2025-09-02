@@ -572,11 +572,25 @@ const Home = () => {
                       <span className="hidden sm:inline"> | </span>
                       <span className="block sm:inline">
                         Source:{" "}
-                        <a
+                        {/* {item.availability !== 'Unavailable' && (
+                          <a
                           href={item.source}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:underline break-all"
+                        >
+                          View Source
+                        </a>
+                        )}                         */}
+                        <a
+                          href={item.source}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${
+                            item.availability === "Unavailable"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "text-blue-500 hover:underline break-all"
+                          }`}
                         >
                           View Source
                         </a>
@@ -593,7 +607,11 @@ const Home = () => {
                           href={item.download_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
+                          className={`${
+                            item.availability === "Unavailable"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "text-blue-500 hover:underline"
+                          }`}
                         >
                           Download
                         </a>
@@ -603,7 +621,11 @@ const Home = () => {
                           href={item.file_path}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
+                          className={`${
+                            item.availability === "Unavailable"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "text-blue-500 hover:underline"
+                          }`}
                         >
                           View
                         </a>
@@ -849,15 +871,21 @@ const Home = () => {
                     <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
                       {error ? (
                         <>
-                          <ErrorCard />
-                          <ErrorCard />
-                          <ErrorCard />
+                          <ErrorCard error={"Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."}/>
+                          <ErrorCard error={"Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."}/>
+                          <ErrorCard error={"Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."}/>
                         </>
                       ) : loading ? (
                         <>
                           <SkeletonCard />
                           <SkeletonCard />
                           <SkeletonCard />
+                        </>
+                      ) : stats.length === 0 ? (
+                        <>
+                        <ErrorCard error={"Looks like there's no data available to show right now..."}/>
+                        <ErrorCard error={"Looks like there's no data available to show right now..."}/>
+                        <ErrorCard error={"Looks like there's no data available to show right now..."}/>
                         </>
                       ) : (
                         stats.map((stat, index) => (
