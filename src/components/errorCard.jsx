@@ -1,6 +1,6 @@
 import { BarChart3 } from "lucide-react";
 
-const ErrorCard = () => (
+const ErrorCard = ({error}) => (
   <div className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1">
     <div className="flex flex-col items-center text-center space-y-3">
       <div>
@@ -10,8 +10,7 @@ const ErrorCard = () => (
         No Stats Found
       </h3>
       <p className="text-xs font-light text-gray-400 max-w-xs">
-        Looks like there's no data available to show right now, This can be a
-        error from db or try refreshing...
+        {error}
       </p>
     </div>
   </div>
