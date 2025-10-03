@@ -1,3 +1,3 @@
-// window.configs = {
-//   apiUrl: '/choreo-apis/orgchart2/go-rest/v1',
-// };
+window.configs = {
+  apiUrl: 'https://web-production-a5197.up.railway.app'
+};
