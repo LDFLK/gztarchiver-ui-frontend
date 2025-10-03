@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+
 
 import {
   X,
@@ -24,29 +26,52 @@ import SocialMediaSidebar from "../components/socialMediaSideBar";
 import ErrorCard from "../components/errorCard";
 
 const Home = () => {
+  // Rename setUrlParams to align with standard convention (e.g., setSearchParamsFn)
+  const [urlParams, setUrlParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState([]);
   const [languages, setLanguages] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // --- CORE CHANGE: searchInput - State for the text field value, search_query_from_url - value from URL ---
+  // The actual search query will be derived from the URL inside the useEffect
+  const [searchInput, setSearchInput] = useState("");
+  const currentUrlQuery = urlParams.get('search') || '';
+  
   const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [pagination, setPagination] = useState({
     current_page: 1,
     total_pages: 0,
     total_count: 0,
-    limit: 50,
+    limit: 10,
     has_next: false,
     has_prev: false,
     start_index: 0,
     end_index: 0,
   });
+  // currentPage and limit will now be stored in URL if you want full shareability, 
+  // but for simplicity, we keep them as state and pass them to search functions.
+  // For production, consider storing page/limit in URL as well: ?q=query&p=1&l=10
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(50);
+  const [limit, setLimit] = useState(10);
+
+  // --- CORE CHANGE: Refactored function to update the URL (Single Source of Truth) ---
+  const updateUrlQuery = useCallback((newQuery) => {
+    // Only update the 'q' parameter in the URL.
+    if (newQuery && newQuery.trim()) {
+      setUrlParams({ search: newQuery.trim() });
+    } else {
+      // Clear 'q' parameter
+      setUrlParams({}); 
+    }
+  }, [setUrlParams]);
+
 
   // Quick search states
   const [showQuickSearch, setShowQuickSearch] = useState(false);
-  const [activeFilter, setActiveFilter] = useState(null);
+  // Active filters are now parsed directly from the currentUrlQuery
+  const [activeFilters, setActiveFilters] = useState([]); // Changed from single activeFilter to array
   const [showLimitDropdown, setShowLimitDropdown] = useState(false);
 
   const quickSearchOptions = [
@@ -56,6 +81,7 @@ const Home = () => {
       icon: Calendar,
       query: "date:2015",
       color: "bg-blue-50 text-blue-700 border-blue-200",
+      pattern: /date:2015/i,
     },
     {
       id: "2016",
@@ -63,6 +89,7 @@ const Home = () => {
       icon: Calendar,
       query: "date:2016",
       color: "bg-purple-50 text-purple-700 border-purple-200",
+      pattern: /date:2016/i,
     },
     {
       id: "people",
@@ -70,6 +97,7 @@ const Home = () => {
       icon: Users,
       query: "type:people",
       color: "bg-green-50 text-green-700 border-green-200",
+      pattern: /type:people/i,
     },
     {
       id: "organisational",
@@ -77,6 +105,7 @@ const Home = () => {
       icon: Building,
       query: "type:organisational",
       color: "bg-orange-50 text-orange-700 border-orange-200",
+      pattern: /type:organisational/i,
     },
     {
       id: "available",
@@ -84,6 +113,7 @@ const Home = () => {
       icon: MessageCircle,
       query: "available:yes",
       color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      pattern: /available:yes/i,
     },
     {
       id: "gov-source",
@@ -91,19 +121,128 @@ const Home = () => {
       icon: Hash,
       query: "source:gov.lk",
       color: "bg-red-50 text-red-700 border-red-200",
+      pattern: /source:gov\.lk/i,
     },
   ];
 
   const limitOptions = [10, 20, 50, 100];
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearch(1); // Reset to first page on new search
+  // Function to parse search query and extract active filters (No change here, still uses query string)
+  const parseActiveFilters = (query) => {
+    // ... (Your existing parseActiveFilters logic)
+    if (!query || !query.trim()) {
+      return [];
     }
-  };
 
-  // Generic search function that accepts limit as parameter
-  const handleSearchWithLimit = async (page = 1, searchLimit = limit) => {
+    const filters = [];
+    const trimmedQuery = query.trim();
+
+    // Check for predefined quick search patterns
+    quickSearchOptions.forEach((option) => {
+      if (option.pattern && option.pattern.test(trimmedQuery)) {
+        filters.push({
+          id: option.id,
+          label: option.label,
+          color: option.color,
+          query: option.query,
+        });
+      }
+    });
+
+    // Parse other patterns that might not be in quick search
+    // Date patterns (date:YYYY or date:YYYY-MM)
+    const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2})?)/gi);
+    if (dateMatches) {
+      dateMatches.forEach((match) => {
+        const dateValue = match.split(":")[1];
+        // Only add if not already in filters
+        if (!filters.some((f) => f.query === match)) {
+          filters.push({
+            id: `date-${dateValue}`,
+            label: dateValue,
+            color: "bg-blue-50 text-blue-700 border-blue-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // ID patterns (id:XXXX)
+    const idMatches = trimmedQuery.match(/id:[\w-]+/gi);
+    if (idMatches) {
+      idMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const idValue = match.split(":")[1];
+          filters.push({
+            id: `id-${idValue}`,
+            label: `ID: ${idValue}`,
+            color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Exact phrase patterns ("...")
+    const phraseMatches = trimmedQuery.match(/"([^"]+)"/g);
+    if (phraseMatches) {
+      phraseMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const phrase = match.replace(/"/g, "");
+          filters.push({
+            id: `phrase-${phrase}`,
+            label: `"${phrase}"`,
+            color: "bg-pink-50 text-pink-700 border-pink-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Check for general text search (text without special patterns)
+    const cleanedQuery = trimmedQuery
+      .replace(/date:\d{4}(?:-\d{2})?/gi, "")
+      .replace(/type:\w+/gi, "")
+      .replace(/id:[\w-]+/gi, "")
+      .replace(/available:\w+/gi, "")
+      .replace(/source:[\w.]+/gi, "")
+      .replace(/"[^"]+"/g, "")
+      .trim();
+
+    if (cleanedQuery) {
+      filters.push({
+        id: `search-${cleanedQuery}`,
+        label: cleanedQuery,
+        color: "bg-cyan-50 text-cyan-700 border-cyan-200",
+        query: cleanedQuery,
+      });
+    }
+
+    return filters;
+    // ... (Your existing parseActiveFilters logic)
+  };
+  
+  // --- CORE CHANGE: Synchronize Filters with URL Query ---
+  // Now uses currentUrlQuery derived from useSearchParams
+  useEffect(() => {
+    const filters = parseActiveFilters(currentUrlQuery);
+    setActiveFilters(filters);
+    // Also update the input field with the current URL query, 
+    // especially important for back/forward navigation
+    setSearchInput(currentUrlQuery);
+    // The previous 'searchQuery' state is effectively replaced by 'currentUrlQuery'
+  }, [currentUrlQuery]);
+
+
+  // --- CORE CHANGE: Generic search function (Now driven by the URL query) ---
+  const handleSearchExecution = useCallback(async (query, page, searchLimit) => {
+    if (!query.trim()) {
+      setHasSearched(false);
+      setSearchResults([]);
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setHasSearched(true);
     setCurrentPage(page);
@@ -117,9 +256,9 @@ const Home = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: searchQuery.trim(),
+          query: query.trim(),
           page: page,
-          limit: searchLimit, // Use the passed limit parameter
+          limit: searchLimit,
         }),
       });
 
@@ -135,7 +274,7 @@ const Home = () => {
           current_page: page,
           total_pages: 0,
           total_count: 0,
-          limit: searchLimit, // Use the passed limit parameter
+          limit: searchLimit,
           has_next: false,
           has_prev: false,
           start_index: 0,
@@ -149,7 +288,7 @@ const Home = () => {
         current_page: page,
         total_pages: 0,
         total_count: 0,
-        limit: searchLimit, // Use the passed limit parameter
+        limit: searchLimit,
         has_next: false,
         has_prev: false,
         start_index: 0,
@@ -158,29 +297,62 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  }, [setUrlParams]); // Dependencies for useCallback are empty for now
+
+  // --- CORE CHANGE: Main useEffect to trigger search when URL query changes ---
+  useEffect(() => {
+      // currentUrlQuery is the actual search query now
+      handleSearchExecution(currentUrlQuery, currentPage, limit);
+  }, [currentUrlQuery, currentPage, limit, handleSearchExecution]); // Trigger search on URL query, page, or limit change
+
+  
+  // --- CORE CHANGE: handleSearch now only updates the URL ---
+  const handleSearch = (page = 1) => {
+    // Only set the URL query to the current input value.
+    // The useEffect above will handle the actual search and currentPage change.
+    updateUrlQuery(searchInput); 
+    // Reset to page 1 for a new search term
+    if(currentUrlQuery !== searchInput) {
+        setCurrentPage(1);
+    }
   };
 
-  // Default search function using current limit state
-  const handleSearch = async (page = 1) => {
-    await handleSearchWithLimit(page, limit);
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch(1); // Call the URL-updating function
+    }
   };
 
+
+  // --- CORE CHANGE: handleQuickSearch now only updates the URL ---
+  const handleQuickSearch = (option) => {
+    setCurrentPage(1); // Reset page to 1
+    // This updates the input field and the URL. useEffect handles the search.
+    setSearchInput(option.query);
+    updateUrlQuery(option.query);
+    setShowQuickSearch(false);
+  };
+
+  // --- CORE CHANGE: handlePageChange now just updates currentPage state ---
   const handlePageChange = (newPage) => {
     if (
       newPage !== currentPage &&
       newPage >= 1 &&
       newPage <= pagination.total_pages
     ) {
-      handleSearch(newPage);
+      // Update currentPage, which triggers the main useEffect to re-run the search
+      setCurrentPage(newPage);
     }
   };
 
+
   const handleBack = () => {
+    // Clear the URL parameter. The useEffect will handle resetting search results.
+    updateUrlQuery("");
     setHasSearched(false);
     setSearchResults([]);
-    setSearchQuery("");
     setCurrentPage(1);
-    setActiveFilter(null);
+    setActiveFilters([]);
     setShowQuickSearch(false);
     setPagination({
       current_page: 1,
@@ -195,73 +367,16 @@ const Home = () => {
   };
 
   const clearSearch = () => {
-    setSearchQuery("");
-    setActiveFilter(null);
+    // Clear local input state and the URL
+    setSearchInput("");
+    updateUrlQuery("");
+    setActiveFilters([]);
+    // The useEffect will handle handleBack-like cleanup due to empty query
   };
 
-  const handleQuickSearch = (option) => {
-    setSearchQuery(option.query);
-    setActiveFilter(option.id);
-    setShowQuickSearch(false);
-    setCurrentPage(1);
-    handleSearchWithQuery(option.query);
-  };
-
-  const handleSearchWithQuery = async (query) => {
-    setLoading(true);
-    setHasSearched(true);
-    setCurrentPage(1);
-
-    try {
-      const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
-      const response = await fetch(`${apiUrl}/search`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: query.trim(),
-          page: 1,
-          limit: limit,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const data = await response.json();
-
-      setSearchResults(data.results || []);
-      setPagination(
-        data.pagination || {
-          current_page: 1,
-          total_pages: 0,
-          total_count: 0,
-          limit: limit,
-          has_next: false,
-          has_prev: false,
-          start_index: 0,
-          end_index: 0,
-        }
-      );
-    } catch (error) {
-      console.error("Error fetching search results:", error);
-      setSearchResults([]);
-      setPagination({
-        current_page: 1,
-        total_pages: 0,
-        total_count: 0,
-        limit: limit,
-        has_next: false,
-        has_prev: false,
-        start_index: 0,
-        end_index: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --- CORE CHANGE: Removed handleSearchWithQuery as its logic is now in handleSearchExecution/useEffect ---
+  // The redundant functions (handleSearchWithLimit, handleSearchWithQuery) can now be consolidated.
+  // The new handleSearchExecution is the primary search runner.
 
   const toggleQuickSearch = () => {
     setShowQuickSearch(!showQuickSearch);
@@ -275,22 +390,32 @@ const Home = () => {
     setShowLimitDropdown(false);
   };
 
-  // FIXED: Remove setTimeout and pass newLimit directly
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
     setShowLimitDropdown(false);
-    // If we have an active search, re-search with new limit immediately
-    if (hasSearched && searchQuery.trim()) {
-      setCurrentPage(1);
-      // Update pagination to reflect new limit immediately
-      setPagination((prev) => ({
-        ...prev,
-        limit: newLimit,
-        current_page: 1,
-      }));
-      // Call search immediately with the new limit - NO TIMEOUT!
-      handleSearchWithLimit(1, newLimit);
+    // If a search is active, set page to 1 and the main useEffect will re-run the search with the new limit
+    if (currentUrlQuery.trim()) {
+      setCurrentPage(1); 
     }
+  };
+
+  // Remove individual filter
+  const removeFilter = (filterToRemove) => {
+    let newQuery = currentUrlQuery;
+
+    // Remove the filter's query from the search string
+    if (filterToRemove.query) {
+      newQuery = newQuery
+        .replace(filterToRemove.query, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    
+    // Update both local input and the URL
+    setSearchInput(newQuery); 
+    updateUrlQuery(newQuery);
+
+    // The useEffect watching currentUrlQuery handles the re-search or reset
   };
 
   // Close dropdowns when clicking outside
@@ -325,7 +450,6 @@ const Home = () => {
 
         const apiData = await response.json();
 
-        // Map API data to stats format
         const mappedStats = [
           {
             icon: <FileText className="w-8 h-8 text-gray-800" />,
@@ -356,15 +480,23 @@ const Home = () => {
         setError(err.message);
         console.error("Error fetching dashboard stats:", err);
       } finally {
-        setLoading(false);
+        // Only stop loading if there is no query in the URL that needs fetching
+        if (!currentUrlQuery) {
+            setLoading(false);
+        }
       }
     };
 
-    fetchDashboardStats();
-  }, []);
+    // Only fetch dashboard stats if no search has been initiated from the URL
+    if (!currentUrlQuery) {
+      fetchDashboardStats();
+    }
+  }, [currentUrlQuery]);
 
-  // Pagination component
+
+  // Pagination component (No changes needed)
   const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
+    // ... (Your existing PaginationControls logic)
     if (pagination.total_pages <= 1) return null;
 
     const getPageNumbers = () => {
@@ -372,14 +504,12 @@ const Home = () => {
       const totalPages = pagination.total_pages;
       const current = currentPage;
 
-      // Always show first page
       pages.push(1);
 
       if (current > 4) {
         pages.push("...");
       }
 
-      // Show pages around current page
       const start = Math.max(2, current - 1);
       const end = Math.min(totalPages - 1, current + 1);
 
@@ -393,7 +523,6 @@ const Home = () => {
         pages.push("...");
       }
 
-      // Always show last page if more than 1 page
       if (totalPages > 1 && !pages.includes(totalPages)) {
         pages.push(totalPages);
       }
@@ -403,7 +532,6 @@ const Home = () => {
 
     return (
       <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8">
-        {/* First page */}
         <button
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
@@ -412,7 +540,6 @@ const Home = () => {
           <ChevronsLeft className="w-3 h-3 sm:w-4 sm:h-4" />
         </button>
 
-        {/* Previous page */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!pagination.has_prev}
@@ -421,7 +548,6 @@ const Home = () => {
           <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
         </button>
 
-        {/* Page numbers */}
         <div className="flex items-center gap-0.5 sm:gap-1">
           {getPageNumbers().map((page, index) => (
             <button
@@ -441,7 +567,6 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Next page */}
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!pagination.has_next}
@@ -450,7 +575,6 @@ const Home = () => {
           <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
         </button>
 
-        {/* Last page */}
         <button
           onClick={() => onPageChange(pagination.total_pages)}
           disabled={currentPage === pagination.total_pages}
@@ -470,6 +594,7 @@ const Home = () => {
     onPageChange,
     onBack,
   }) => {
+    // ... (Your existing SearchResults logic)
     if (!Array.isArray(results) || (results.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
@@ -507,7 +632,6 @@ const Home = () => {
               )}
             </div>
             <div className="flex items-center gap-3">
-              {/* Results per page dropdown */}
               <div className="relative limit-dropdown-container">
                 <button
                   onClick={() => setShowLimitDropdown(!showLimitDropdown)}
@@ -572,16 +696,6 @@ const Home = () => {
                       <span className="hidden sm:inline"> | </span>
                       <span className="block sm:inline">
                         Source:{" "}
-                        {/* {item.availability !== 'Unavailable' && (
-                          <a
-                          href={item.source}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline break-all"
-                        >
-                          View Source
-                        </a>
-                        )}                         */}
                         <a
                           href={item.source}
                           target="_blank"
@@ -637,7 +751,6 @@ const Home = () => {
             ))}
           </div>
 
-          {/* Pagination Controls */}
           <PaginationControls
             pagination={pagination}
             currentPage={currentPage}
@@ -648,28 +761,27 @@ const Home = () => {
     }
   };
 
+
   return (
     <>
-      {/* Social Media Sidebar */}
       <SocialMediaSidebar />
 
       <div className="min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col">
-        {/* Main content with conditional positioning */}
         <div
           className={`flex-1 flex justify-center transition-all duration-700 ease-out ${
-            hasSearched ? "items-start pt-4 sm:pt-8" : "items-center"
+            // Use currentUrlQuery to determine if a search has been executed
+            currentUrlQuery ? "items-start pt-4 sm:pt-8" : "items-center"
           }`}
         >
           <div className="w-full">
             <div
               className={`bg-white/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 transition-all duration-700 ${
-                hasSearched ? "bg-white/90" : ""
+                currentUrlQuery ? "bg-white/90" : ""
               }`}
             >
-              {/* Header */}
               <div
                 className={`text-center transition-all duration-500 ${
-                  hasSearched ? "mb-6 sm:mb-8" : "mb-8 sm:mb-12"
+                  currentUrlQuery ? "mb-6 sm:mb-8" : "mb-8 sm:mb-12"
                 }`}
               >
                 <div className="flex items-center justify-center gap-2 sm:gap-3">
@@ -678,7 +790,7 @@ const Home = () => {
                   </div>
                   <h1
                     className={`font-thin text-gray-600 flex items-center transition-all duration-500 ${
-                      hasSearched
+                      currentUrlQuery
                         ? "text-2xl sm:text-3xl"
                         : "text-3xl sm:text-4xl"
                     }`}
@@ -688,15 +800,13 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Enhanced Search Section */}
               <div className="flex flex-col items-center mb-6 sm:mb-8">
-                {/* Main Search Bar */}
                 <div className="relative w-full max-w-4xl search-input-container">
                   <input
                     type="text"
                     placeholder="Search documents, IDs, types, date or source..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchInput} // Use local state for input
+                    onChange={(e) => setSearchInput(e.target.value)} // Update local state on change
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
                     className="w-full pl-10 sm:pl-14 pr-32 sm:pr-40 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
@@ -706,9 +816,8 @@ const Home = () => {
                   />
                   <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
 
-                  {/* Quick Search Toggle & Clear Button */}
                   <div className="absolute right-20 sm:right-26 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                    {searchQuery && (
+                    {searchInput && ( // Check local state for clear button
                       <button
                         onClick={clearSearch}
                         className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200"
@@ -736,7 +845,6 @@ const Home = () => {
                   </button>
                 </div>
 
-                {/* Quick Search Options with Enhanced Animation */}
                 <div
                   className={`w-full max-w-4xl overflow-hidden quick-search-container transition-all duration-300 ease-out rounded-xl sm:rounded-2xl shadow-lg ${
                     showQuickSearch
@@ -771,7 +879,7 @@ const Home = () => {
                             key={option.id}
                             onClick={() => handleQuickSearch(option)}
                             className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:cursor-pointer ${
-                              activeFilter === option.id
+                              activeFilters.some((f) => f.id === option.id)
                                 ? option.color + " shadow-md"
                                 : "bg-white text-gray-600 border-gray-100 hover:bg-gray-50"
                             }`}
@@ -786,7 +894,6 @@ const Home = () => {
                       })}
                     </div>
 
-                    {/* Search Tips */}
                     <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-gray-100">
                       <p className="text-xs sm:text-sm text-gray-500 mb-2">
                         Search examples:
@@ -821,59 +928,62 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Active Filter Display */}
-                {activeFilter && (
-                  <div className="w-full max-w-4xl mt-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm text-gray-500">
-                        Active filter:
+                {/* Active Filter Display - Now shows all active filters */}
+                {activeFilters.length > 0 && (
+                  <div className="w-full max-w-4xl mt-3 sm:mt-4">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs sm:text-sm text-gray-500 mt-1 flex-shrink-0">
+                        Active filters:
                       </span>
-                      <div
-                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-all duration-200 ${
-                          quickSearchOptions.find(
-                            (opt) => opt.id === activeFilter
-                          )?.color
-                        }`}
-                      >
-                        <span>
-                          {
-                            quickSearchOptions.find(
-                              (opt) => opt.id === activeFilter
-                            )?.label
-                          }
-                        </span>
-                        <button
-                          onClick={() => {
-                            setActiveFilter(null);
-                            setSearchQuery("");
-                          }}
-                          className="hover:bg-black/10 rounded transition-colors duration-150"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                      <div className="flex flex-wrap gap-2">
+                        {activeFilters.map((filter) => (
+                          <div
+                            key={filter.id}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-200 ${filter.color}`}
+                          >
+                            <span className="font-medium">{filter.label}</span>
+                            <button
+                              onClick={() => removeFilter(filter)}
+                              className="hover:bg-black/10 rounded-full p-0.5 transition-colors duration-150"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}  
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Stats Cards with conditional rendering */}
               <div
                 className={`transition-all duration-700 ease-out ${
-                  hasSearched
+                  currentUrlQuery // Check URL query
                     ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
                     : "opacity-100 scale-100 pointer-events-auto"
                 }`}
               >
-                {!hasSearched && (
+                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
+                {!currentUrlQuery && (
                   <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
-                    {/* Top row - 3 stat cards */}
                     <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
                       {error ? (
                         <>
-                          <ErrorCard error={"Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."}/>
-                          <ErrorCard error={"Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."}/>
-                          <ErrorCard error={"Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."}/>
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."
+                            }
+                          />
                         </>
                       ) : loading ? (
                         <>
@@ -883,9 +993,21 @@ const Home = () => {
                         </>
                       ) : stats.length === 0 ? (
                         <>
-                        <ErrorCard error={"Looks like there's no data available to show right now..."}/>
-                        <ErrorCard error={"Looks like there's no data available to show right now..."}/>
-                        <ErrorCard error={"Looks like there's no data available to show right now..."}/>
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
                         </>
                       ) : (
                         stats.map((stat, index) => (
@@ -941,17 +1063,17 @@ const Home = () => {
                 )}
               </div>
 
-              {/* Search Results Section */}
               <div
                 className={`transition-all duration-700 ease-out ${
-                  hasSearched && searchResults
+                  currentUrlQuery // Check URL query
                     ? "opacity-100 scale-100 pointer-events-auto"
                     : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
                 }`}
               >
-                {hasSearched && searchResults && (
+                {/* Use currentUrlQuery for the results component */}
+                {currentUrlQuery && (
                   <SearchResults
-                    query={searchQuery.trim()}
+                    query={currentUrlQuery} // Pass URL query
                     results={searchResults}
                     pagination={pagination}
                     currentPage={currentPage}
@@ -961,8 +1083,7 @@ const Home = () => {
                 )}
               </div>
 
-              {/* Loading state for search */}
-              {loading && hasSearched && (
+              {loading && currentUrlQuery && ( // Check URL query
                 <div className="flex justify-center items-center py-8 sm:py-12">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
@@ -976,7 +1097,6 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Footer - fixed at bottom */}
         <div className="pt-4 sm:pt-6 border-t border-gray-100">
           <p className="text-xs text-gray-400 text-center">
             Open Data @{new Date().getFullYear()}. All rights reserved.
