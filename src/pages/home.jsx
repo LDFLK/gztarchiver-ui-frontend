@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 
 
 import {
@@ -25,11 +26,18 @@ import SocialMediaSidebar from "../components/socialMediaSideBar";
 import ErrorCard from "../components/errorCard";
 
 const Home = () => {
+  // Rename setUrlParams to align with standard convention (e.g., setSearchParamsFn)
+  const [urlParams, setUrlParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState([]);
   const [languages, setLanguages] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // --- CORE CHANGE: searchInput - State for the text field value, search_query_from_url - value from URL ---
+  // The actual search query will be derived from the URL inside the useEffect
+  const [searchInput, setSearchInput] = useState("");
+  const currentUrlQuery = urlParams.get('search') || '';
+  
   const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [pagination, setPagination] = useState({
@@ -42,11 +50,27 @@ const Home = () => {
     start_index: 0,
     end_index: 0,
   });
+  // currentPage and limit will now be stored in URL if you want full shareability, 
+  // but for simplicity, we keep them as state and pass them to search functions.
+  // For production, consider storing page/limit in URL as well: ?q=query&p=1&l=10
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
+  // --- CORE CHANGE: Refactored function to update the URL (Single Source of Truth) ---
+  const updateUrlQuery = useCallback((newQuery) => {
+    // Only update the 'q' parameter in the URL.
+    if (newQuery && newQuery.trim()) {
+      setUrlParams({ search: newQuery.trim() });
+    } else {
+      // Clear 'q' parameter
+      setUrlParams({}); 
+    }
+  }, [setUrlParams]);
+
+
   // Quick search states
   const [showQuickSearch, setShowQuickSearch] = useState(false);
+  // Active filters are now parsed directly from the currentUrlQuery
   const [activeFilters, setActiveFilters] = useState([]); // Changed from single activeFilter to array
   const [showLimitDropdown, setShowLimitDropdown] = useState(false);
 
@@ -103,8 +127,9 @@ const Home = () => {
 
   const limitOptions = [10, 20, 50, 100];
 
-  // Function to parse search query and extract active filters
+  // Function to parse search query and extract active filters (No change here, still uses query string)
   const parseActiveFilters = (query) => {
+    // ... (Your existing parseActiveFilters logic)
     if (!query || !query.trim()) {
       return [];
     }
@@ -194,22 +219,30 @@ const Home = () => {
     }
 
     return filters;
+    // ... (Your existing parseActiveFilters logic)
   };
-
-  // Update active filters whenever search query changes
+  
+  // --- CORE CHANGE: Synchronize Filters with URL Query ---
+  // Now uses currentUrlQuery derived from useSearchParams
   useEffect(() => {
-    const filters = parseActiveFilters(searchQuery);
+    const filters = parseActiveFilters(currentUrlQuery);
     setActiveFilters(filters);
-  }, [searchQuery]);
+    // Also update the input field with the current URL query, 
+    // especially important for back/forward navigation
+    setSearchInput(currentUrlQuery);
+    // The previous 'searchQuery' state is effectively replaced by 'currentUrlQuery'
+  }, [currentUrlQuery]);
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearch(1);
+
+  // --- CORE CHANGE: Generic search function (Now driven by the URL query) ---
+  const handleSearchExecution = useCallback(async (query, page, searchLimit) => {
+    if (!query.trim()) {
+      setHasSearched(false);
+      setSearchResults([]);
+      setLoading(false);
+      return;
     }
-  };
-
-  // Generic search function that accepts limit as parameter
-  const handleSearchWithLimit = async (page = 1, searchLimit = limit) => {
+    
     setLoading(true);
     setHasSearched(true);
     setCurrentPage(page);
@@ -223,7 +256,7 @@ const Home = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: searchQuery.trim(),
+          query: query.trim(),
           page: page,
           limit: searchLimit,
         }),
@@ -264,27 +297,60 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  }, [setUrlParams]); // Dependencies for useCallback are empty for now
+
+  // --- CORE CHANGE: Main useEffect to trigger search when URL query changes ---
+  useEffect(() => {
+      // currentUrlQuery is the actual search query now
+      handleSearchExecution(currentUrlQuery, currentPage, limit);
+  }, [currentUrlQuery, currentPage, limit, handleSearchExecution]); // Trigger search on URL query, page, or limit change
+
+  
+  // --- CORE CHANGE: handleSearch now only updates the URL ---
+  const handleSearch = (page = 1) => {
+    // Only set the URL query to the current input value.
+    // The useEffect above will handle the actual search and currentPage change.
+    updateUrlQuery(searchInput); 
+    // Reset to page 1 for a new search term
+    if(currentUrlQuery !== searchInput) {
+        setCurrentPage(1);
+    }
   };
 
-  // Default search function using current limit state
-  const handleSearch = async (page = 1) => {
-    await handleSearchWithLimit(page, limit);
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch(1); // Call the URL-updating function
+    }
   };
 
+
+  // --- CORE CHANGE: handleQuickSearch now only updates the URL ---
+  const handleQuickSearch = (option) => {
+    setCurrentPage(1); // Reset page to 1
+    // This updates the input field and the URL. useEffect handles the search.
+    setSearchInput(option.query);
+    updateUrlQuery(option.query);
+    setShowQuickSearch(false);
+  };
+
+  // --- CORE CHANGE: handlePageChange now just updates currentPage state ---
   const handlePageChange = (newPage) => {
     if (
       newPage !== currentPage &&
       newPage >= 1 &&
       newPage <= pagination.total_pages
     ) {
-      handleSearch(newPage);
+      // Update currentPage, which triggers the main useEffect to re-run the search
+      setCurrentPage(newPage);
     }
   };
 
+
   const handleBack = () => {
+    // Clear the URL parameter. The useEffect will handle resetting search results.
+    updateUrlQuery("");
     setHasSearched(false);
     setSearchResults([]);
-    setSearchQuery("");
     setCurrentPage(1);
     setActiveFilters([]);
     setShowQuickSearch(false);
@@ -301,72 +367,16 @@ const Home = () => {
   };
 
   const clearSearch = () => {
-    setSearchQuery("");
+    // Clear local input state and the URL
+    setSearchInput("");
+    updateUrlQuery("");
     setActiveFilters([]);
+    // The useEffect will handle handleBack-like cleanup due to empty query
   };
 
-  const handleQuickSearch = (option) => {
-    setSearchQuery(option.query);
-    setShowQuickSearch(false);
-    setCurrentPage(1);
-    handleSearchWithQuery(option.query);
-  };
-
-  const handleSearchWithQuery = async (query) => {
-    setLoading(true);
-    setHasSearched(true);
-    setCurrentPage(1);
-
-    try {
-      const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
-      const response = await fetch(`${apiUrl}/search`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: query.trim(),
-          page: 1,
-          limit: limit,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const data = await response.json();
-
-      setSearchResults(data.results || []);
-      setPagination(
-        data.pagination || {
-          current_page: 1,
-          total_pages: 0,
-          total_count: 0,
-          limit: limit,
-          has_next: false,
-          has_prev: false,
-          start_index: 0,
-          end_index: 0,
-        }
-      );
-    } catch (error) {
-      console.error("Error fetching search results:", error);
-      setSearchResults([]);
-      setPagination({
-        current_page: 1,
-        total_pages: 0,
-        total_count: 0,
-        limit: limit,
-        has_next: false,
-        has_prev: false,
-        start_index: 0,
-        end_index: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --- CORE CHANGE: Removed handleSearchWithQuery as its logic is now in handleSearchExecution/useEffect ---
+  // The redundant functions (handleSearchWithLimit, handleSearchWithQuery) can now be consolidated.
+  // The new handleSearchExecution is the primary search runner.
 
   const toggleQuickSearch = () => {
     setShowQuickSearch(!showQuickSearch);
@@ -383,20 +393,15 @@ const Home = () => {
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
     setShowLimitDropdown(false);
-    if (hasSearched && searchQuery.trim()) {
-      setCurrentPage(1);
-      setPagination((prev) => ({
-        ...prev,
-        limit: newLimit,
-        current_page: 1,
-      }));
-      handleSearchWithLimit(1, newLimit);
+    // If a search is active, set page to 1 and the main useEffect will re-run the search with the new limit
+    if (currentUrlQuery.trim()) {
+      setCurrentPage(1); 
     }
   };
 
   // Remove individual filter
   const removeFilter = (filterToRemove) => {
-    let newQuery = searchQuery;
+    let newQuery = currentUrlQuery;
 
     // Remove the filter's query from the search string
     if (filterToRemove.query) {
@@ -405,16 +410,12 @@ const Home = () => {
         .replace(/\s+/g, " ")
         .trim();
     }
+    
+    // Update both local input and the URL
+    setSearchInput(newQuery); 
+    updateUrlQuery(newQuery);
 
-    setSearchQuery(newQuery);
-
-    // If query is now empty, reset search
-    if (!newQuery) {
-      handleBack();
-    } else {
-      // Re-search with updated query
-      handleSearchWithQuery(newQuery);
-    }
+    // The useEffect watching currentUrlQuery handles the re-search or reset
   };
 
   // Close dropdowns when clicking outside
@@ -479,15 +480,23 @@ const Home = () => {
         setError(err.message);
         console.error("Error fetching dashboard stats:", err);
       } finally {
-        setLoading(false);
+        // Only stop loading if there is no query in the URL that needs fetching
+        if (!currentUrlQuery) {
+            setLoading(false);
+        }
       }
     };
 
-    fetchDashboardStats();
-  }, []);
+    // Only fetch dashboard stats if no search has been initiated from the URL
+    if (!currentUrlQuery) {
+      fetchDashboardStats();
+    }
+  }, [currentUrlQuery]);
 
-  // Pagination component
+
+  // Pagination component (No changes needed)
   const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
+    // ... (Your existing PaginationControls logic)
     if (pagination.total_pages <= 1) return null;
 
     const getPageNumbers = () => {
@@ -585,6 +594,7 @@ const Home = () => {
     onPageChange,
     onBack,
   }) => {
+    // ... (Your existing SearchResults logic)
     if (!Array.isArray(results) || (results.length === 0 && !loading)) {
       return (
         <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
@@ -751,6 +761,7 @@ const Home = () => {
     }
   };
 
+
   return (
     <>
       <SocialMediaSidebar />
@@ -758,18 +769,19 @@ const Home = () => {
       <div className="min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col">
         <div
           className={`flex-1 flex justify-center transition-all duration-700 ease-out ${
-            hasSearched ? "items-start pt-4 sm:pt-8" : "items-center"
+            // Use currentUrlQuery to determine if a search has been executed
+            currentUrlQuery ? "items-start pt-4 sm:pt-8" : "items-center"
           }`}
         >
           <div className="w-full">
             <div
               className={`bg-white/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 transition-all duration-700 ${
-                hasSearched ? "bg-white/90" : ""
+                currentUrlQuery ? "bg-white/90" : ""
               }`}
             >
               <div
                 className={`text-center transition-all duration-500 ${
-                  hasSearched ? "mb-6 sm:mb-8" : "mb-8 sm:mb-12"
+                  currentUrlQuery ? "mb-6 sm:mb-8" : "mb-8 sm:mb-12"
                 }`}
               >
                 <div className="flex items-center justify-center gap-2 sm:gap-3">
@@ -778,7 +790,7 @@ const Home = () => {
                   </div>
                   <h1
                     className={`font-thin text-gray-600 flex items-center transition-all duration-500 ${
-                      hasSearched
+                      currentUrlQuery
                         ? "text-2xl sm:text-3xl"
                         : "text-3xl sm:text-4xl"
                     }`}
@@ -793,8 +805,8 @@ const Home = () => {
                   <input
                     type="text"
                     placeholder="Search documents, IDs, types, date or source..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchInput} // Use local state for input
+                    onChange={(e) => setSearchInput(e.target.value)} // Update local state on change
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
                     className="w-full pl-10 sm:pl-14 pr-32 sm:pr-40 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
@@ -805,7 +817,7 @@ const Home = () => {
                   <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
 
                   <div className="absolute right-20 sm:right-26 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                    {searchQuery && (
+                    {searchInput && ( // Check local state for clear button
                       <button
                         onClick={clearSearch}
                         className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200"
@@ -946,12 +958,13 @@ const Home = () => {
 
               <div
                 className={`transition-all duration-700 ease-out ${
-                  hasSearched
+                  currentUrlQuery // Check URL query
                     ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
                     : "opacity-100 scale-100 pointer-events-auto"
                 }`}
               >
-                {!hasSearched && (
+                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
+                {!currentUrlQuery && (
                   <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
                     <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
                       {error ? (
@@ -1052,14 +1065,15 @@ const Home = () => {
 
               <div
                 className={`transition-all duration-700 ease-out ${
-                  hasSearched && searchResults
+                  currentUrlQuery // Check URL query
                     ? "opacity-100 scale-100 pointer-events-auto"
                     : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
                 }`}
               >
-                {hasSearched && searchResults && (
+                {/* Use currentUrlQuery for the results component */}
+                {currentUrlQuery && (
                   <SearchResults
-                    query={searchQuery.trim()}
+                    query={currentUrlQuery} // Pass URL query
                     results={searchResults}
                     pagination={pagination}
                     currentPage={currentPage}
@@ -1069,7 +1083,7 @@ const Home = () => {
                 )}
               </div>
 
-              {loading && hasSearched && (
+              {loading && currentUrlQuery && ( // Check URL query
                 <div className="flex justify-center items-center py-8 sm:py-12">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
@@ -1094,4 +1108,3 @@ const Home = () => {
 };
 
 export default Home;
-
