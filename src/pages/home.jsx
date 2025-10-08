@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDashboardStats } from "../hooks/useDashboardQuery";
+import SearchResults from "../components/searchResults";
+import TracePane from "../components/tracePane";
 
 import {
   X,
@@ -11,15 +13,11 @@ import {
   FileText,
   Calendar,
   Globe,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Hash,
   MessageCircle,
   FileSearch,
-  ChevronDown,
-  Building} from "lucide-react";
+  Building,
+} from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
 import SocialMediaSidebar from "../components/socialMediaSideBar";
@@ -33,6 +31,7 @@ const Home = () => {
   const [languages, setLanguages] = useState([]);
   const [types, setTypes] = useState([]);
   const [searchCriteria, setSearchCriteria] = useState([]);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
 
   const [searchInput, setSearchInput] = useState("");
   const currentUrlQuery = urlParams.get("search") || "";
@@ -120,7 +119,44 @@ const Home = () => {
     },
   ];
 
-  const limitOptions = [10, 20, 50, 100];
+  const handleTraceClick = (documentId) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("docId", documentId);
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ docId: documentId }, "", newUrl);
+    setSelectedDocumentId(documentId);
+  };
+
+  const handleClosePane = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("docId");
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.pushState({}, "", newUrl);
+    setSelectedDocumentId(null);
+  };
+
+
+  // ADD THIS useEffect to initialize from URL
+  useEffect(() => {
+    // Read document ID from URL on mount
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get("docId");
+    if (docId) {
+      setSelectedDocumentId(docId);
+    }
+
+    // Listen for URL changes (browser back/forward)
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const docId = params.get("docId");
+      setSelectedDocumentId(docId);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Function to parse search query and extract active filters (No change here, still uses query string)
   const parseActiveFilters = (query) => {
@@ -470,274 +506,6 @@ const Home = () => {
       setError(null);
     }
   }, [queryError]);
-
-
-  // Pagination component (No changes needed)
-  const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
-    if (pagination.total_pages <= 1) return null;
-
-    const getPageNumbers = () => {
-      const pages = [];
-      const totalPages = pagination.total_pages;
-      const current = currentPage;
-
-      pages.push(1);
-
-      if (current > 4) {
-        pages.push("...");
-      }
-
-      const start = Math.max(2, current - 1);
-      const end = Math.min(totalPages - 1, current + 1);
-
-      for (let i = start; i <= end; i++) {
-        if (!pages.includes(i)) {
-          pages.push(i);
-        }
-      }
-
-      if (current < totalPages - 3) {
-        pages.push("...");
-      }
-
-      if (totalPages > 1 && !pages.includes(totalPages)) {
-        pages.push(totalPages);
-      }
-
-      return pages;
-    };
-
-    return (
-      <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8">
-        <button
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronsLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={!pagination.has_prev}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          {getPageNumbers().map((page, index) => (
-            <button
-              key={index}
-              onClick={() => page !== "..." && onPageChange(page)}
-              disabled={page === "..."}
-              className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                page === currentPage
-                  ? "bg-gray-800 text-white hover:cursor-pointer"
-                  : page === "..."
-                  ? "cursor-default text-gray-400"
-                  : "border-none hover:cursor-pointer border-gray-200 hover:bg-gray-50 text-gray-700"
-              }`}
-            >
-              {page}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={!pagination.has_next}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        <button
-          onClick={() => onPageChange(pagination.total_pages)}
-          disabled={currentPage === pagination.total_pages}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronsRight className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-      </div>
-    );
-  };
-
-
-  const SearchResults = ({
-    query,
-    results,
-    pagination,
-    currentPage,
-    onPageChange,
-    onBack,
-  }) => {
-    // ... (Your existing SearchResults logic)
-    if (!Array.isArray(results) || (results.length === 0 && !loading)) {
-      return (
-        <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
-          <p className="text-gray-500 text-sm sm:text-base">
-            No results found for "{query}"
-          </p>
-          <button
-            onClick={onBack}
-            className="mt-4 text-sm text-blue-500 hover:text-blue-700 hover:cursor-pointer"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      );
-    }
-
-    if (!loading) {
-      return (
-    
-          <div className="w-full max-w-6xl mx-auto">
-            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-thin text-gray-700 mb-2">
-                  Search Results for "{query}"
-                </h2>
-                {pagination.total_count > 0 && (
-                  <p className="text-xs sm:text-sm text-gray-500 font-light">
-                    <span className="font-medium text-gray-700">
-                      {pagination.total_count.toLocaleString()}
-                    </span>{" "}
-                    records found - showing{" "}
-                    <span className="font-medium text-gray-700">
-                      {pagination.start_index} - {pagination.end_index}
-                    </span>
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative limit-dropdown-container">
-                  <button
-                    onClick={() => setShowLimitDropdown(!showLimitDropdown)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200 hover:cursor-pointer"
-                  >
-                    <span>{limit} per page</span>
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform duration-200 ${
-                        showLimitDropdown ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  <div
-                    className={`absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
-                      showLimitDropdown
-                        ? "opacity-100 scale-100"
-                        : "opacity-0 scale-95 pointer-events-none"
-                    }`}
-                  >
-                    {limitOptions.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => handleLimitChange(option)}
-                        className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                          option === limit
-                            ? "bg-gray-100 text-gray-900"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {option} per page
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  onClick={onBack}
-                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer"
-                >
-                  ← Back to Home
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3 sm:space-y-4">
-              {results.map((item, index) => (
-                <div
-                  key={item.id || index}
-                  className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2 break-words">
-                        {item.description || "No description"}
-                      </h3>
-                      <div className="text-gray-600 text-xs sm:text-sm mb-3 break-words">
-                        <span className="block sm:inline">
-                          Document Type: {item.document_type || "Unknown"}
-                        </span>
-                        <span className="hidden sm:inline"> | </span>
-                        <span className="block sm:inline">
-                          Source:{" "}
-                          <a
-                            href={item.source}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${
-                              item.availability === "Unavailable"
-                                ? "text-gray-400 cursor-not-allowed"
-                                : "text-blue-500 hover:underline break-all"
-                            }`}
-                          >
-                            View Source
-                          </a>
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                        <span className="break-all">
-                          ID: {item.document_id || "N/A"}
-                        </span>
-                        <span>Type: {item.document_type || "Unknown"}</span>
-                        <span>Date: {item.document_date || "N/A"}</span>
-                        {item.download_url && (
-                          <a
-                            href={item.download_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${
-                              item.availability === "Unavailable"
-                                ? "text-gray-400 cursor-not-allowed"
-                                : "text-blue-500 hover:underline"
-                            }`}
-                          >
-                            Download
-                          </a>
-                        )}
-                        {item.file_path && (
-                          <a
-                            href={item.file_path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${
-                              item.availability === "Unavailable"
-                                ? "text-gray-400 cursor-not-allowed"
-                                : "text-blue-500 hover:underline"
-                            }`}
-                          >
-                            View
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <PaginationControls
-              pagination={pagination}
-              currentPage={currentPage}
-              onPageChange={onPageChange}
-            />
-          </div>
-      );
-    }
-  };
 
   return (
     <>
@@ -1176,6 +944,10 @@ const Home = () => {
                     currentPage={currentPage}
                     onPageChange={handlePageChange}
                     onBack={handleBack}
+                    loading={loading}
+                    limit={limit}
+                    showLimitDropdown={showLimitDropdown}
+                    onTraceClick={handleTraceClick}
                   />
                 )}
               </div>
@@ -1201,6 +973,9 @@ const Home = () => {
           </p>
         </div>
       </div>
+      {selectedDocumentId && (
+        <TracePane documentId={selectedDocumentId} onClose={handleClosePane} />
+      )}
     </>
   );
 };
