@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import TracePane from "./tracePane";
 import { ChevronDown, FileText } from "lucide-react";
 import PaginationControls from "./paginationContrls";
 
@@ -13,14 +11,15 @@ const SearchResults = ({
   loading,
   limit,
   showLimitDropdown,
-  onTraceClick
+  onTraceClick,
+  handleLimitChange,
+  setShowLimitDropdown
 }) => {
   const limitOptions = [10, 20, 50, 100];
-  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
 
   const handleTraceClick = (e, documentId) => {
     e.preventDefault();
-    onTraceClick(documentId); // Call parent handler
+    onTraceClick(documentId);
   };
 
   if (!Array.isArray(results) || (results.length === 0 && !loading)) {
@@ -196,13 +195,6 @@ const SearchResults = ({
             onPageChange={onPageChange}
           />
         </div>
-        {/* Trace Pane */}
-        {selectedDocumentId && (
-          <TracePane
-            documentId={selectedDocumentId}
-            onClose={handleClosePane}
-          />
-        )}
       </>
     );
   }

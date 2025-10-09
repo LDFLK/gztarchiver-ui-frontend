@@ -339,7 +339,7 @@ const Home = () => {
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      handleSearch(1); // Call the URL-updating function
+      handleSearch(1); 
     }
   };
 
@@ -938,7 +938,7 @@ const Home = () => {
                 {/* Use currentUrlQuery for the results component */}
                 {currentUrlQuery && (
                   <SearchResults
-                    query={currentUrlQuery} // Pass URL query
+                    query={currentUrlQuery} 
                     results={searchResults}
                     pagination={pagination}
                     currentPage={currentPage}
@@ -948,6 +948,8 @@ const Home = () => {
                     limit={limit}
                     showLimitDropdown={showLimitDropdown}
                     onTraceClick={handleTraceClick}
+                    handleLimitChange={handleLimitChange}
+                    setShowLimitDropdown={setShowLimitDropdown}
                   />
                 )}
               </div>

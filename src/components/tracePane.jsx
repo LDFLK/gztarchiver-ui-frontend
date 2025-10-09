@@ -3,7 +3,6 @@ import { X } from "lucide-react";
 
 const TracePane = ({ documentId, onClose }) => {
   useEffect(() => {
-    // Prevent body scroll when pane is open
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "unset";
