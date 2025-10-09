@@ -137,7 +137,6 @@ const Home = () => {
     setSelectedDocumentId(null);
   };
 
-
   // ADD THIS useEffect to initialize from URL
   useEffect(() => {
     // Read document ID from URL on mount
@@ -339,7 +338,7 @@ const Home = () => {
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      handleSearch(1); 
+      handleSearch(1);
     }
   };
 
@@ -511,10 +510,13 @@ const Home = () => {
     <>
       <SocialMediaSidebar />
 
-      <div className="min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col">
+      <div
+        className={`min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col transition-all duration-500 ${
+          selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
+        }`}
+      >
         <div
           className={`flex-1 flex justify-center transition-all duration-700 ease-out ${
-            // Use currentUrlQuery to determine if a search has been executed
             currentUrlQuery ? "items-start pt-4 sm:pt-8" : "items-center"
           }`}
         >
@@ -938,7 +940,7 @@ const Home = () => {
                 {/* Use currentUrlQuery for the results component */}
                 {currentUrlQuery && (
                   <SearchResults
-                    query={currentUrlQuery} 
+                    query={currentUrlQuery}
                     results={searchResults}
                     pagination={pagination}
                     currentPage={currentPage}
@@ -975,6 +977,9 @@ const Home = () => {
           </p>
         </div>
       </div>
+      {selectedDocumentId && (
+        <div className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-500"></div>
+      )}
       {selectedDocumentId && (
         <TracePane documentId={selectedDocumentId} onClose={handleClosePane} />
       )}
