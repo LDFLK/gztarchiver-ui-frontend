@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useDashboardStats } from "../hooks/useDashboardQuery";
 import SearchResults from "../components/searchResults";
 import TracePane from "../components/tracePane";
+import { useNavigate } from "react-router-dom";
 
 import {
   X,
@@ -17,11 +18,15 @@ import {
   MessageCircle,
   FileSearch,
   Building,
+  CircleAlert,
+  SquareArrowOutUpRight,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
 import SocialMediaSidebar from "../components/socialMediaSideBar";
 import ErrorCard from "../components/errorCard";
+
+import { getReadableRelationshipName } from "../utils/relationshipUtils";
 
 const Home = () => {
   const [urlParams, setUrlParams] = useSearchParams();
@@ -32,9 +37,12 @@ const Home = () => {
   const [types, setTypes] = useState([]);
   const [searchCriteria, setSearchCriteria] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
+  const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
 
   const [searchInput, setSearchInput] = useState("");
   const currentUrlQuery = urlParams.get("search") || "";
+
+  const navigate = useNavigate();
 
   const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -135,6 +143,11 @@ const Home = () => {
       : window.location.pathname;
     window.history.pushState({}, "", newUrl);
     setSelectedDocumentId(null);
+    setSelectedNodeInfo(null);
+  };
+
+  const handleNodeSelect = (nodeData) => {
+    setSelectedNodeInfo(nodeData);
   };
 
   // ADD THIS useEffect to initialize from URL
@@ -404,6 +417,26 @@ const Home = () => {
     }
   };
 
+  const handleTypes = (type) => {
+    setUrlParams({ search: `type:${type.replace(/ /g, "_").toUpperCase()}` });
+    console.log(type)
+  }
+
+  const handleCriteria = (criteria) => {
+    setSearchInput(criteria);
+  }
+
+  const handleGazetteClick = (gazetteId) => {
+    // setUrlParams({ search: gazetteId });
+    const baseUrl = window.location.origin;
+
+    // Construct the new URL with the search parameter
+    const newUrl = `${baseUrl}/?search=id%3A${gazetteId}`;
+
+    // Open the new URL in a new window/tab
+    window.open(newUrl, "_blank");
+  };
+
   // Remove individual filter
   const removeFilter = (filterToRemove) => {
     let newQuery = currentUrlQuery;
@@ -465,6 +498,7 @@ const Home = () => {
           icon: <LayoutList className="w-8 h-8 text-gray-800" />,
           title: "Available Types",
           value: "types",
+          description: "Click to search with types"
         },
         {
           icon: <Calendar className="w-8 h-8 text-gray-800" />,
@@ -478,7 +512,7 @@ const Home = () => {
           icon: <Search className="w-8 h-8 text-gray-800" />,
           title: "Search Criteria",
           value: "criteria",
-          description: "Available search criteria",
+          description: "Click to add search criteria",
         },
       ];
 
@@ -542,7 +576,7 @@ const Home = () => {
                         : "text-3xl sm:text-4xl"
                     }`}
                   >
-                    gztarchiver
+                    Archiver
                   </h1>
                 </div>
               </div>
@@ -765,7 +799,7 @@ const Home = () => {
                           .map((stat, index) => (
                             <div
                               key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 hover:shadow-lg cursor-pointer"
+                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all"
                               style={{
                                 transitionDelay: `${index * 100}ms`,
                               }}
@@ -871,7 +905,7 @@ const Home = () => {
                           .map((stat, index) => (
                             <div
                               key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 hover:shadow-lg cursor-pointer flex items-stretch"
+                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 flex items-stretch"
                               style={{
                                 transitionDelay: `${index * 100}ms`,
                               }}
@@ -892,12 +926,16 @@ const Home = () => {
                                       {types.map((type, typeIndex) => (
                                         <span
                                           key={typeIndex}
-                                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
+                                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
+                                          onClick={() => handleTypes(type)}
                                         >
                                           {type}
                                         </span>
                                       ))}
                                     </div>
+                                    <p className="text-xs font-thin text-gray-500">
+                                      {stat.description}
+                                    </p>
                                   </>
                                 ) : stat.value === "criteria" ? (
                                   <>
@@ -909,7 +947,8 @@ const Home = () => {
                                         (criteria, criteriaIndex) => (
                                           <span
                                             key={criteriaIndex}
-                                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
+                                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
+                                            onClick={() => handleCriteria(criteria)}
                                           >
                                             {criteria}
                                           </span>
@@ -980,9 +1019,120 @@ const Home = () => {
       {selectedDocumentId && (
         <div className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-500"></div>
       )}
-      {selectedDocumentId && (
-        <TracePane documentId={selectedDocumentId} onClose={handleClosePane} />
+
+      {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
+      {selectedDocumentId && selectedNodeInfo && (
+        <div className="fixed left-0 top-0 h-full w-1/3 bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
+          <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-thin text-gray-900">
+                Gazette {selectedNodeInfo.node.data.title}
+              </h2>
+              <p className="text-sm text-gray-500 font-light">
+                ({selectedNodeInfo.connections.length}) Relationships found
+              </p>
+            </div>
+          </div>
+          <div className="p-4">
+            {/* Connections List */}
+            {selectedNodeInfo.connections.length > 0 && (
+              <div>
+                <div className="space-y-2">
+                  {selectedNodeInfo.connections
+                    .slice() // create a shallow copy so the original array isn't mutated
+                    .sort((a, b) => {
+                      const order = ["AS_DOCUMENT", "AMENDS", "REFERS_TO"];
+                      return order.indexOf(a.name) - order.indexOf(b.name);
+                    })
+                    .map((connection, index) => (
+                      <div
+                        key={index}
+                        className={`rounded-lg p-3 bg-gray-700
+                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-800" : "" }`}
+                        onClick={() =>
+                          handleGazetteClick(connection.document_number)
+                        }
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="text-sm font-light text-white">
+                            {connection.relatedEntityId !== "gov_01"
+                              ? "Gazette "
+                              : ""}
+                            {connection.document_number}
+                          </p>
+
+                          {/* <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              connection.direction === "INCOMING"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-green-100 text-green-700"
+                            }`}
+                          >
+                            
+                            {connection.direction}
+                          </span> */}
+                          {connection.relatedEntityId !== "gov_01" ? <SquareArrowOutUpRight className="text-white w-4 h-4" /> : ""}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-ligh text-white`}>
+                            Relationship:
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded ${
+                              connection.name === "AS_DOCUMENT"
+                                ? "bg-cyan-200 text-cyan-800"
+                                : connection.name === "AMENDS"
+                                ? "bg-teal-200 text-teal-800"
+                                : connection.name === "REFERS_TO"
+                                ? "bg-indigo-200 text-indigo-900"
+                                : "text-black"
+                            }`}
+                          >
+                            {getReadableRelationshipName(
+                              connection.name || "DEFAULT"
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {selectedNodeInfo.connections.length === 0 && (
+              <div className="text-center py-8">
+                <CircleAlert className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">
+                  No connections found for this document
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
+
+      {selectedDocumentId && (
+        <TracePane
+          documentId={selectedDocumentId}
+          onClose={handleClosePane}
+          onNodeSelect={handleNodeSelect}
+        />
+      )}
+
+      <style jsx>{`
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
+        .animate-slideInLeft {
+          animation: slideInLeft 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 };
