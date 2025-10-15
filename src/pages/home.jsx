@@ -760,122 +760,6 @@ const Home = () => {
                               "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
                             }
                           />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                        </>
-                      ) : loading ? (
-                        <>
-                          <SkeletonCard />
-                          <SkeletonCard />
-                          <SkeletonCard />
-                        </>
-                      ) : stats.length === 0 ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                        </>
-                      ) : (
-                        stats
-                          .filter(
-                            (stat) =>
-                              !["criteria", "types"].includes(stat.value)
-                          )
-                          .map((stat, index) => (
-                            <div
-                              key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all"
-                              style={{
-                                transitionDelay: `${index * 100}ms`,
-                              }}
-                            >
-                              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                                <div className="flex-shrink-0">{stat.icon}</div>
-                                <div className="space-y-1 sm:space-y-2">
-                                  {stat.value === "languages" ? (
-                                    <>
-                                      <p className="text-xs sm:text-sm font-light text-gray-600">
-                                        {stat.title}
-                                      </p>
-
-                                      <div className="flex flex-wrap justify-center gap-1">
-                                        {languages.map(
-                                          (language, langIndex) => (
-                                            <span
-                                              key={langIndex}
-                                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
-                                            >
-                                              {language}
-                                            </span>
-                                          )
-                                        )}
-                                      </div>
-
-                                      <p className="text-xs font-thin text-gray-500">
-                                        {stat.description}
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                                        {stat.value}
-                                      </h3>
-                                      <p className="text-xs sm:text-sm font-light text-gray-600">
-                                        {stat.title}
-                                      </p>
-                                      <p className="text-xs font-thin text-gray-500">
-                                        {stat.description}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div
-                className={`transition-all duration-700 ease-out${
-                  currentUrlQuery // Check URL query
-                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                    : "opacity-100 scale-100 pointer-events-auto"
-                }`}
-              >
-                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
-                {!currentUrlQuery && (
-                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto mt-5">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
-                      {error ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
                         </>
                       ) : loading ? (
                         <>
@@ -970,6 +854,122 @@ const Home = () => {
               </div>
 
               <div
+                className={`transition-all duration-700 ease-out${
+                  currentUrlQuery // Check URL query
+                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
+                    : "opacity-100 scale-100 pointer-events-auto"
+                }`}
+              >
+                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
+                {!currentUrlQuery && (
+                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto mt-5">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
+                      {error ? (
+                        <>
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
+                            }
+                          />
+                        </>
+                      ) : loading ? (
+                        <>
+                          <SkeletonCard />
+                          <SkeletonCard />
+                          <SkeletonCard />
+                        </>
+                      ) : stats.length === 0 ? (
+                        <>
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
+                        </>
+                      ) : (
+                        stats
+                          .filter(
+                            (stat) =>
+                              !["criteria", "types"].includes(stat.value)
+                          )
+                          .map((stat, index) => (
+                            <div
+                              key={index}
+                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all"
+                              style={{
+                                transitionDelay: `${index * 100}ms`,
+                              }}
+                            >
+                              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                                <div className="flex-shrink-0">{stat.icon}</div>
+                                <div className="space-y-1 sm:space-y-2">
+                                  {stat.value === "languages" ? (
+                                    <>
+                                      <p className="text-xs sm:text-sm font-light text-gray-600">
+                                        {stat.title}
+                                      </p>
+
+                                      <div className="flex flex-wrap justify-center gap-1">
+                                        {languages.map(
+                                          (language, langIndex) => (
+                                            <span
+                                              key={langIndex}
+                                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
+                                            >
+                                              {language}
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
+
+                                      <p className="text-xs font-thin text-gray-500">
+                                        {stat.description}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
+                                        {stat.value}
+                                      </h3>
+                                      <p className="text-xs sm:text-sm font-light text-gray-600">
+                                        {stat.title}
+                                      </p>
+                                      <p className="text-xs font-thin text-gray-500">
+                                        {stat.description}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
                 className={`transition-all duration-700 ease-out ${
                   currentUrlQuery // Check URL query
                     ? "opacity-100 scale-100 pointer-events-auto"
@@ -1047,8 +1047,8 @@ const Home = () => {
                     .map((connection, index) => (
                       <div
                         key={index}
-                        className={`rounded-lg p-3 bg-gray-700
-                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-800" : "" }`}
+                        className={`rounded-lg p-3 bg-gray-800
+                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-900" : "" }`}
                         onClick={() =>
                           handleGazetteClick(connection.document_number)
                         }
@@ -1060,17 +1060,6 @@ const Home = () => {
                               : ""}
                             {connection.document_number}
                           </p>
-
-                          {/* <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              connection.direction === "INCOMING"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-green-100 text-green-700"
-                            }`}
-                          >
-                            
-                            {connection.direction}
-                          </span> */}
                           {connection.relatedEntityId !== "gov_01" ? <SquareArrowOutUpRight className="text-white w-4 h-4" /> : ""}
                         </div>
                         <div className="flex items-center gap-2">
@@ -1078,7 +1067,7 @@ const Home = () => {
                             Relationship:
                           </span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded ${
+                            className={`text-xs px-2 py-0.5 rounded-xl ${
                               connection.name === "AS_DOCUMENT"
                                 ? "bg-cyan-200 text-cyan-800"
                                 : connection.name === "AMENDS"
