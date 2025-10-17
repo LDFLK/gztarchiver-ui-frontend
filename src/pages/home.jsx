@@ -1,43 +1,49 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-
+import { useDashboardStats } from "../hooks/useDashboardQuery";
+import SearchResults from "../components/searchResults";
+import TracePane from "../components/tracePane";
+import { useNavigate } from "react-router-dom";
 
 import {
   X,
   Users,
+  LayoutList,
   Search,
   FileArchive,
   FileText,
   Calendar,
   Globe,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Hash,
   MessageCircle,
   FileSearch,
-  ChevronDown,
   Building,
+  CircleAlert,
+  SquareArrowOutUpRight,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
 import SocialMediaSidebar from "../components/socialMediaSideBar";
 import ErrorCard from "../components/errorCard";
 
+import { getReadableRelationshipName } from "../utils/relationshipUtils";
+
 const Home = () => {
-  // Rename setUrlParams to align with standard convention (e.g., setSearchParamsFn)
   const [urlParams, setUrlParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState([]);
   const [languages, setLanguages] = useState([]);
-  
-  // --- CORE CHANGE: searchInput - State for the text field value, search_query_from_url - value from URL ---
-  // The actual search query will be derived from the URL inside the useEffect
+  const [types, setTypes] = useState([]);
+  const [searchCriteria, setSearchCriteria] = useState([]);
+  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
+  const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
+
   const [searchInput, setSearchInput] = useState("");
-  const currentUrlQuery = urlParams.get('search') || '';
-  
+  const currentUrlQuery = urlParams.get("search") || "";
+
+  const navigate = useNavigate();
+
   const [hasSearched, setHasSearched] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [pagination, setPagination] = useState({
@@ -50,28 +56,24 @@ const Home = () => {
     start_index: 0,
     end_index: 0,
   });
-  // currentPage and limit will now be stored in URL if you want full shareability, 
-  // but for simplicity, we keep them as state and pass them to search functions.
-  // For production, consider storing page/limit in URL as well: ?q=query&p=1&l=10
+
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // --- CORE CHANGE: Refactored function to update the URL (Single Source of Truth) ---
-  const updateUrlQuery = useCallback((newQuery) => {
-    // Only update the 'q' parameter in the URL.
-    if (newQuery && newQuery.trim()) {
-      setUrlParams({ search: newQuery.trim() });
-    } else {
-      // Clear 'q' parameter
-      setUrlParams({}); 
-    }
-  }, [setUrlParams]);
-
+  const updateUrlQuery = useCallback(
+    (newQuery) => {
+      if (newQuery && newQuery.trim()) {
+        setUrlParams({ search: newQuery.trim() });
+      } else {
+        setUrlParams({});
+      }
+    },
+    [setUrlParams]
+  );
 
   // Quick search states
   const [showQuickSearch, setShowQuickSearch] = useState(false);
-  // Active filters are now parsed directly from the currentUrlQuery
-  const [activeFilters, setActiveFilters] = useState([]); // Changed from single activeFilter to array
+  const [activeFilters, setActiveFilters] = useState([]);
   const [showLimitDropdown, setShowLimitDropdown] = useState(false);
 
   const quickSearchOptions = [
@@ -81,7 +83,7 @@ const Home = () => {
       icon: Calendar,
       query: "date:2015",
       color: "bg-blue-50 text-blue-700 border-blue-200",
-      pattern: /date:2015/i,
+      pattern: /date:2015\b(?!-\d)/i,
     },
     {
       id: "2016",
@@ -89,7 +91,7 @@ const Home = () => {
       icon: Calendar,
       query: "date:2016",
       color: "bg-purple-50 text-purple-700 border-purple-200",
-      pattern: /date:2016/i,
+      pattern: /date:2016\b(?!-\d)/i,
     },
     {
       id: "people",
@@ -125,11 +127,51 @@ const Home = () => {
     },
   ];
 
-  const limitOptions = [10, 20, 50, 100];
+  const handleTraceClick = (documentId) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("docId", documentId);
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ docId: documentId }, "", newUrl);
+    setSelectedDocumentId(documentId);
+  };
+
+  const handleClosePane = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("docId");
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.pushState({}, "", newUrl);
+    setSelectedDocumentId(null);
+    setSelectedNodeInfo(null);
+  };
+
+  const handleNodeSelect = (nodeData) => {
+    setSelectedNodeInfo(nodeData);
+  };
+
+  // ADD THIS useEffect to initialize from URL
+  useEffect(() => {
+    // Read document ID from URL on mount
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get("docId");
+    if (docId) {
+      setSelectedDocumentId(docId);
+    }
+
+    // Listen for URL changes (browser back/forward)
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const docId = params.get("docId");
+      setSelectedDocumentId(docId);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Function to parse search query and extract active filters (No change here, still uses query string)
   const parseActiveFilters = (query) => {
-    // ... (Your existing parseActiveFilters logic)
     if (!query || !query.trim()) {
       return [];
     }
@@ -150,8 +192,7 @@ const Home = () => {
     });
 
     // Parse other patterns that might not be in quick search
-    // Date patterns (date:YYYY or date:YYYY-MM)
-    const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2})?)/gi);
+    const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2}){0,2})/gi);
     if (dateMatches) {
       dateMatches.forEach((match) => {
         const dateValue = match.split(":")[1];
@@ -201,7 +242,7 @@ const Home = () => {
 
     // Check for general text search (text without special patterns)
     const cleanedQuery = trimmedQuery
-      .replace(/date:\d{4}(?:-\d{2})?/gi, "")
+      .replace(/date:\d{4}(?:-\d{2}){0,2}/gi, "")
       .replace(/type:\w+/gi, "")
       .replace(/id:[\w-]+/gi, "")
       .replace(/available:\w+/gi, "")
@@ -219,58 +260,66 @@ const Home = () => {
     }
 
     return filters;
-    // ... (Your existing parseActiveFilters logic)
   };
-  
-  // --- CORE CHANGE: Synchronize Filters with URL Query ---
-  // Now uses currentUrlQuery derived from useSearchParams
+
   useEffect(() => {
     const filters = parseActiveFilters(currentUrlQuery);
     setActiveFilters(filters);
-    // Also update the input field with the current URL query, 
-    // especially important for back/forward navigation
+
     setSearchInput(currentUrlQuery);
-    // The previous 'searchQuery' state is effectively replaced by 'currentUrlQuery'
   }, [currentUrlQuery]);
 
-
-  // --- CORE CHANGE: Generic search function (Now driven by the URL query) ---
-  const handleSearchExecution = useCallback(async (query, page, searchLimit) => {
-    if (!query.trim()) {
-      setHasSearched(false);
-      setSearchResults([]);
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    setHasSearched(true);
-    setCurrentPage(page);
-    setShowQuickSearch(false);
-
-    try {
-      const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
-      const response = await fetch(`${apiUrl}/search`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: query.trim(),
-          page: page,
-          limit: searchLimit,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+  const handleSearchExecution = useCallback(
+    async (query, page, searchLimit) => {
+      if (!query.trim()) {
+        setHasSearched(false);
+        setSearchResults([]);
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json();
+      setLoading(true);
+      setHasSearched(true);
+      setCurrentPage(page);
+      setShowQuickSearch(false);
 
-      setSearchResults(data.results || []);
-      setPagination(
-        data.pagination || {
+      try {
+        const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
+        const response = await fetch(`${apiUrl}/search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: query.trim(),
+            page: page,
+            limit: searchLimit,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+
+        setSearchResults(data.results || []);
+        setPagination(
+          data.pagination || {
+            current_page: page,
+            total_pages: 0,
+            total_count: 0,
+            limit: searchLimit,
+            has_next: false,
+            has_prev: false,
+            start_index: 0,
+            end_index: 0,
+          }
+        );
+      } catch (error) {
+        console.error("Error fetching search results:", error);
+        setSearchResults([]);
+        setPagination({
           current_page: page,
           total_pages: 0,
           total_count: 0,
@@ -279,75 +328,51 @@ const Home = () => {
           has_prev: false,
           start_index: 0,
           end_index: 0,
-        }
-      );
-    } catch (error) {
-      console.error("Error fetching search results:", error);
-      setSearchResults([]);
-      setPagination({
-        current_page: page,
-        total_pages: 0,
-        total_count: 0,
-        limit: searchLimit,
-        has_next: false,
-        has_prev: false,
-        start_index: 0,
-        end_index: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [setUrlParams]); // Dependencies for useCallback are empty for now
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setUrlParams]
+  );
 
-  // --- CORE CHANGE: Main useEffect to trigger search when URL query changes ---
   useEffect(() => {
-      // currentUrlQuery is the actual search query now
-      handleSearchExecution(currentUrlQuery, currentPage, limit);
+    // currentUrlQuery is the actual search query now
+    handleSearchExecution(currentUrlQuery, currentPage, limit);
   }, [currentUrlQuery, currentPage, limit, handleSearchExecution]); // Trigger search on URL query, page, or limit change
 
-  
-  // --- CORE CHANGE: handleSearch now only updates the URL ---
   const handleSearch = (page = 1) => {
-    // Only set the URL query to the current input value.
-    // The useEffect above will handle the actual search and currentPage change.
-    updateUrlQuery(searchInput); 
+    updateUrlQuery(searchInput);
     // Reset to page 1 for a new search term
-    if(currentUrlQuery !== searchInput) {
-        setCurrentPage(1);
+    if (currentUrlQuery !== searchInput) {
+      setCurrentPage(1);
     }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      handleSearch(1); // Call the URL-updating function
+      handleSearch(1);
     }
   };
 
-
-  // --- CORE CHANGE: handleQuickSearch now only updates the URL ---
   const handleQuickSearch = (option) => {
-    setCurrentPage(1); // Reset page to 1
-    // This updates the input field and the URL. useEffect handles the search.
+    setCurrentPage(1);
     setSearchInput(option.query);
     updateUrlQuery(option.query);
     setShowQuickSearch(false);
   };
 
-  // --- CORE CHANGE: handlePageChange now just updates currentPage state ---
   const handlePageChange = (newPage) => {
     if (
       newPage !== currentPage &&
       newPage >= 1 &&
       newPage <= pagination.total_pages
     ) {
-      // Update currentPage, which triggers the main useEffect to re-run the search
       setCurrentPage(newPage);
     }
   };
 
-
   const handleBack = () => {
-    // Clear the URL parameter. The useEffect will handle resetting search results.
     updateUrlQuery("");
     setHasSearched(false);
     setSearchResults([]);
@@ -367,16 +392,10 @@ const Home = () => {
   };
 
   const clearSearch = () => {
-    // Clear local input state and the URL
     setSearchInput("");
     updateUrlQuery("");
     setActiveFilters([]);
-    // The useEffect will handle handleBack-like cleanup due to empty query
   };
-
-  // --- CORE CHANGE: Removed handleSearchWithQuery as its logic is now in handleSearchExecution/useEffect ---
-  // The redundant functions (handleSearchWithLimit, handleSearchWithQuery) can now be consolidated.
-  // The new handleSearchExecution is the primary search runner.
 
   const toggleQuickSearch = () => {
     setShowQuickSearch(!showQuickSearch);
@@ -393,10 +412,29 @@ const Home = () => {
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
     setShowLimitDropdown(false);
-    // If a search is active, set page to 1 and the main useEffect will re-run the search with the new limit
     if (currentUrlQuery.trim()) {
-      setCurrentPage(1); 
+      setCurrentPage(1);
     }
+  };
+
+  const handleTypes = (type) => {
+    setUrlParams({ search: `type:${type.replace(/ /g, "_").toUpperCase()}` });
+    console.log(type)
+  }
+
+  const handleCriteria = (criteria) => {
+    setSearchInput(criteria);
+  }
+
+  const handleGazetteClick = (gazetteId) => {
+    // setUrlParams({ search: gazetteId });
+    const baseUrl = window.location.origin;
+
+    // Construct the new URL with the search parameter
+    const newUrl = `${baseUrl}/?search=id%3A${gazetteId}`;
+
+    // Open the new URL in a new window/tab
+    window.open(newUrl, "_blank");
   };
 
   // Remove individual filter
@@ -410,12 +448,10 @@ const Home = () => {
         .replace(/\s+/g, " ")
         .trim();
     }
-    
-    // Update both local input and the URL
-    setSearchInput(newQuery); 
-    updateUrlQuery(newQuery);
 
-    // The useEffect watching currentUrlQuery handles the re-search or reset
+    // Update both local input and the URL
+    setSearchInput(newQuery);
+    updateUrlQuery(newQuery);
   };
 
   // Close dropdowns when clicking outside
@@ -437,339 +473,84 @@ const Home = () => {
     };
   }, []);
 
+  const {
+    data: apiData,
+    isLoading,
+    error: queryError,
+  } = useDashboardStats(!currentUrlQuery);
+  // Process the data when it arrives
   useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
-        setLoading(true);
-        const response = await fetch(`${apiUrl}/dashboard-status`);
+    if (apiData) {
+      const mappedStats = [
+        {
+          icon: <FileText className="w-8 h-8 text-gray-800" />,
+          title: "Total Documents",
+          value: apiData.total_docs?.toLocaleString() || "0",
+          description: "Archived files",
+        },
+        {
+          icon: <Globe className="w-8 h-8 text-gray-800" />,
+          title: "Available Languages",
+          value: "languages",
+          description: "Supported formats",
+        },
+        {
+          icon: <LayoutList className="w-8 h-8 text-gray-800" />,
+          title: "Available Types",
+          value: "types",
+          description: "Click to search with types"
+        },
+        {
+          icon: <Calendar className="w-8 h-8 text-gray-800" />,
+          title: "Years Covered",
+          value: `${apiData.years_covered?.from || ""} - ${
+            apiData.years_covered?.to || ""
+          }`,
+          description: "Date range",
+        },
+        {
+          icon: <Search className="w-8 h-8 text-gray-800" />,
+          title: "Search Criteria",
+          value: "criteria",
+          description: "Click to add search criteria",
+        },
+      ];
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch dashboard stats");
-        }
+      setStats(mappedStats);
+      setLanguages(apiData.available_languages || []);
+      setTypes(apiData.document_types || []);
+      setSearchCriteria(["id:", "type:", "date:", "available:", "source:"]);
+    }
+  }, [apiData]);
 
-        const apiData = await response.json();
-
-        const mappedStats = [
-          {
-            icon: <FileText className="w-8 h-8 text-gray-800" />,
-            title: "Total Documents",
-            value: apiData.total_docs?.toLocaleString() || "0",
-            description: "Archived files",
-          },
-          {
-            icon: <Globe className="w-8 h-8 text-gray-800" />,
-            title: "Available Languages",
-            value: "languages",
-            description: "Supported formats",
-          },
-          {
-            icon: <Calendar className="w-8 h-8 text-gray-800" />,
-            title: "Years Covered",
-            value: `${apiData.years_covered?.from || ""} - ${
-              apiData.years_covered?.to || ""
-            }`,
-            description: "Date range",
-          },
-        ];
-
-        setStats(mappedStats);
-        setLanguages(apiData.available_languages || []);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        console.error("Error fetching dashboard stats:", err);
-      } finally {
-        // Only stop loading if there is no query in the URL that needs fetching
-        if (!currentUrlQuery) {
-            setLoading(false);
-        }
-      }
-    };
-
-    // Only fetch dashboard stats if no search has been initiated from the URL
+  // Sync loading state
+  useEffect(() => {
     if (!currentUrlQuery) {
-      fetchDashboardStats();
+      setLoading(isLoading);
     }
-  }, [currentUrlQuery]);
+  }, [isLoading, currentUrlQuery]);
 
-
-  // Pagination component (No changes needed)
-  const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
-    // ... (Your existing PaginationControls logic)
-    if (pagination.total_pages <= 1) return null;
-
-    const getPageNumbers = () => {
-      const pages = [];
-      const totalPages = pagination.total_pages;
-      const current = currentPage;
-
-      pages.push(1);
-
-      if (current > 4) {
-        pages.push("...");
-      }
-
-      const start = Math.max(2, current - 1);
-      const end = Math.min(totalPages - 1, current + 1);
-
-      for (let i = start; i <= end; i++) {
-        if (!pages.includes(i)) {
-          pages.push(i);
-        }
-      }
-
-      if (current < totalPages - 3) {
-        pages.push("...");
-      }
-
-      if (totalPages > 1 && !pages.includes(totalPages)) {
-        pages.push(totalPages);
-      }
-
-      return pages;
-    };
-
-    return (
-      <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8">
-        <button
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronsLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={!pagination.has_prev}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          {getPageNumbers().map((page, index) => (
-            <button
-              key={index}
-              onClick={() => page !== "..." && onPageChange(page)}
-              disabled={page === "..."}
-              className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                page === currentPage
-                  ? "bg-gray-800 text-white hover:cursor-pointer"
-                  : page === "..."
-                  ? "cursor-default text-gray-400"
-                  : "border-none hover:cursor-pointer border-gray-200 hover:bg-gray-50 text-gray-700"
-              }`}
-            >
-              {page}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={!pagination.has_next}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        <button
-          onClick={() => onPageChange(pagination.total_pages)}
-          disabled={currentPage === pagination.total_pages}
-          className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ChevronsRight className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-      </div>
-    );
-  };
-
-  const SearchResults = ({
-    query,
-    results,
-    pagination,
-    currentPage,
-    onPageChange,
-    onBack,
-  }) => {
-    // ... (Your existing SearchResults logic)
-    if (!Array.isArray(results) || (results.length === 0 && !loading)) {
-      return (
-        <div className="w-full max-w-6xl mx-auto text-center py-8 sm:py-12">
-          <p className="text-gray-500 text-sm sm:text-base">
-            No results found for "{query}"
-          </p>
-          <button
-            onClick={onBack}
-            className="mt-4 text-sm text-blue-500 hover:text-blue-700 hover:cursor-pointer"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      );
+  // Sync error state
+  useEffect(() => {
+    if (queryError) {
+      setError(queryError.message);
+      console.error("Error fetching dashboard stats:", queryError);
+    } else {
+      setError(null);
     }
-
-    if (!loading) {
-      return (
-        <div className="w-full max-w-6xl mx-auto">
-          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-thin text-gray-700 mb-2">
-                Search Results for "{query}"
-              </h2>
-              {pagination.total_count > 0 && (
-                <p className="text-xs sm:text-sm text-gray-500 font-light">
-                  <span className="font-medium text-gray-700">
-                    {pagination.total_count.toLocaleString()}
-                  </span>{" "}
-                  records found - showing{" "}
-                  <span className="font-medium text-gray-700">
-                    {pagination.start_index} - {pagination.end_index}
-                  </span>
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative limit-dropdown-container">
-                <button
-                  onClick={() => setShowLimitDropdown(!showLimitDropdown)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200 hover:cursor-pointer"
-                >
-                  <span>{limit} per page</span>
-                  <ChevronDown
-                    className={`w-3 h-3 transition-transform duration-200 ${
-                      showLimitDropdown ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                <div
-                  className={`absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
-                    showLimitDropdown
-                      ? "opacity-100 scale-100"
-                      : "opacity-0 scale-95 pointer-events-none"
-                  }`}
-                >
-                  {limitOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => handleLimitChange(option)}
-                      className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                        option === limit
-                          ? "bg-gray-100 text-gray-900"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      {option} per page
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={onBack}
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors hover:cursor-pointer"
-              >
-                ← Back to Home
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            {results.map((item, index) => (
-              <div
-                key={item.id || index}
-                className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2 break-words">
-                      {item.description || "No description"}
-                    </h3>
-                    <div className="text-gray-600 text-xs sm:text-sm mb-3 break-words">
-                      <span className="block sm:inline">
-                        Document Type: {item.document_type || "Unknown"}
-                      </span>
-                      <span className="hidden sm:inline"> | </span>
-                      <span className="block sm:inline">
-                        Source:{" "}
-                        <a
-                          href={item.source}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${
-                            item.availability === "Unavailable"
-                              ? "text-gray-400 cursor-not-allowed"
-                              : "text-blue-500 hover:underline break-all"
-                          }`}
-                        >
-                          View Source
-                        </a>
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <span className="break-all">
-                        ID: {item.document_id || "N/A"}
-                      </span>
-                      <span>Type: {item.document_type || "Unknown"}</span>
-                      <span>Date: {item.document_date || "N/A"}</span>
-                      {item.download_url && (
-                        <a
-                          href={item.download_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${
-                            item.availability === "Unavailable"
-                              ? "text-gray-400 cursor-not-allowed"
-                              : "text-blue-500 hover:underline"
-                          }`}
-                        >
-                          Download
-                        </a>
-                      )}
-                      {item.file_path && (
-                        <a
-                          href={item.file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${
-                            item.availability === "Unavailable"
-                              ? "text-gray-400 cursor-not-allowed"
-                              : "text-blue-500 hover:underline"
-                          }`}
-                        >
-                          View
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <PaginationControls
-            pagination={pagination}
-            currentPage={currentPage}
-            onPageChange={onPageChange}
-          />
-        </div>
-      );
-    }
-  };
-
+  }, [queryError]);
 
   return (
     <>
       <SocialMediaSidebar />
 
-      <div className="min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col">
+      <div
+        className={`min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col transition-all duration-500 ${
+          selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
+        }`}
+      >
         <div
           className={`flex-1 flex justify-center transition-all duration-700 ease-out ${
-            // Use currentUrlQuery to determine if a search has been executed
             currentUrlQuery ? "items-start pt-4 sm:pt-8" : "items-center"
           }`}
         >
@@ -795,7 +576,7 @@ const Home = () => {
                         : "text-3xl sm:text-4xl"
                     }`}
                   >
-                    gztarchiver
+                    Archives
                   </h1>
                 </div>
               </div>
@@ -944,12 +725,12 @@ const Home = () => {
                             <span className="font-medium">{filter.label}</span>
                             <button
                               onClick={() => removeFilter(filter)}
-                              className="hover:bg-black/10 rounded-full p-0.5 transition-colors duration-150"
+                              className="hover:bg-black/10 rounded-full p-0.5 transition-colors duration-150 hover:cursor-pointer"
                             >
                               <X className="w-3 h-3" />
                             </button>
                           </div>
-                        ))}  
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -957,7 +738,7 @@ const Home = () => {
               </div>
 
               <div
-                className={`transition-all duration-700 ease-out ${
+                className={`transition-all duration-700 ease-out${
                   currentUrlQuery // Check URL query
                     ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
                     : "opacity-100 scale-100 pointer-events-auto"
@@ -971,17 +752,133 @@ const Home = () => {
                         <>
                           <ErrorCard
                             error={
-                              "Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
                             }
                           />
                           <ErrorCard
                             error={
-                              "Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
+                            }
+                          />
+                        </>
+                      ) : loading ? (
+                        <>
+                          <SkeletonCard />
+                          <SkeletonCard />
+                        </>
+                      ) : stats.length === 0 ? (
+                        <>
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now..."
                             }
                           />
                           <ErrorCard
                             error={
-                              "Looks like there's no data available to show right now, This can be aerror from db or try refreshing..."
+                              "Looks like there's no data available to show right now..."
+                            }
+                          />
+                        </>
+                      ) : (
+                        stats
+                          .filter(
+                            (stat) =>
+                              stat.value === "criteria" ||
+                              stat.value === "types"
+                          )
+                          .map((stat, index) => (
+                            <div
+                              key={index}
+                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 flex items-stretch"
+                              style={{
+                                transitionDelay: `${index * 100}ms`,
+                              }}
+                            >
+                              {/* Icon on the left */}
+                              <div className="flex-shrink-0 flex items-center justify-center mr-4">
+                                {stat.icon}
+                              </div>
+
+                              {/* Content on the right */}
+                              <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-3">
+                                {stat.value === "types" ? (
+                                  <>
+                                    <p className="text-xs sm:text-sm font-light text-gray-600">
+                                      {stat.title}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {types.map((type, typeIndex) => (
+                                        <span
+                                          key={typeIndex}
+                                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
+                                          onClick={() => handleTypes(type)}
+                                        >
+                                          {type}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <p className="text-xs font-thin text-gray-500">
+                                      {stat.description}
+                                    </p>
+                                  </>
+                                ) : stat.value === "criteria" ? (
+                                  <>
+                                    <p className="text-xs sm:text-sm font-light text-gray-600">
+                                      {stat.title}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {searchCriteria.map(
+                                        (criteria, criteriaIndex) => (
+                                          <span
+                                            key={criteriaIndex}
+                                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
+                                            onClick={() => handleCriteria(criteria)}
+                                          >
+                                            {criteria}
+                                          </span>
+                                        )
+                                      )}
+                                    </div>
+                                    <p className="text-xs font-thin text-gray-500">
+                                      {stat.description}
+                                    </p>
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                className={`transition-all duration-700 ease-out${
+                  currentUrlQuery // Check URL query
+                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
+                    : "opacity-100 scale-100 pointer-events-auto"
+                }`}
+              >
+                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
+                {!currentUrlQuery && (
+                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto mt-5">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
+                      {error ? (
+                        <>
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
+                            }
+                          />
+                          <ErrorCard
+                            error={
+                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
                             }
                           />
                         </>
@@ -1010,53 +907,62 @@ const Home = () => {
                           />
                         </>
                       ) : (
-                        stats.map((stat, index) => (
-                          <div
-                            key={index}
-                            className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 hover:shadow-lg cursor-pointer"
-                            style={{
-                              transitionDelay: `${index * 100}ms`,
-                            }}
-                          >
-                            <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                              <div className="flex-shrink-0">{stat.icon}</div>
-                              <div className="space-y-1 sm:space-y-2">
-                                {stat.value === "languages" ? (
-                                  <>
-                                    <p className="text-xs sm:text-sm font-light text-gray-600">
-                                      {stat.title}
-                                    </p>
-                                    <div className="flex flex-wrap justify-center gap-1">
-                                      {languages.map((language, langIndex) => (
-                                        <span
-                                          key={langIndex}
-                                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
-                                        >
-                                          {language}
-                                        </span>
-                                      ))}
-                                    </div>
-                                    <p className="text-xs font-thin text-gray-500">
-                                      {stat.description}
-                                    </p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                                      {stat.value}
-                                    </h3>
-                                    <p className="text-xs sm:text-sm font-light text-gray-600">
-                                      {stat.title}
-                                    </p>
-                                    <p className="text-xs font-thin text-gray-500">
-                                      {stat.description}
-                                    </p>
-                                  </>
-                                )}
+                        stats
+                          .filter(
+                            (stat) =>
+                              !["criteria", "types"].includes(stat.value)
+                          )
+                          .map((stat, index) => (
+                            <div
+                              key={index}
+                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all"
+                              style={{
+                                transitionDelay: `${index * 100}ms`,
+                              }}
+                            >
+                              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
+                                <div className="flex-shrink-0">{stat.icon}</div>
+                                <div className="space-y-1 sm:space-y-2">
+                                  {stat.value === "languages" ? (
+                                    <>
+                                      <p className="text-xs sm:text-sm font-light text-gray-600">
+                                        {stat.title}
+                                      </p>
+
+                                      <div className="flex flex-wrap justify-center gap-1">
+                                        {languages.map(
+                                          (language, langIndex) => (
+                                            <span
+                                              key={langIndex}
+                                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
+                                            >
+                                              {language}
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
+
+                                      <p className="text-xs font-thin text-gray-500">
+                                        {stat.description}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
+                                        {stat.value}
+                                      </h3>
+                                      <p className="text-xs sm:text-sm font-light text-gray-600">
+                                        {stat.title}
+                                      </p>
+                                      <p className="text-xs font-thin text-gray-500">
+                                        {stat.description}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          ))
                       )}
                     </div>
                   </div>
@@ -1073,26 +979,33 @@ const Home = () => {
                 {/* Use currentUrlQuery for the results component */}
                 {currentUrlQuery && (
                   <SearchResults
-                    query={currentUrlQuery} // Pass URL query
+                    query={currentUrlQuery}
                     results={searchResults}
                     pagination={pagination}
                     currentPage={currentPage}
                     onPageChange={handlePageChange}
                     onBack={handleBack}
+                    loading={loading}
+                    limit={limit}
+                    showLimitDropdown={showLimitDropdown}
+                    onTraceClick={handleTraceClick}
+                    handleLimitChange={handleLimitChange}
+                    setShowLimitDropdown={setShowLimitDropdown}
                   />
                 )}
               </div>
 
-              {loading && currentUrlQuery && ( // Check URL query
-                <div className="flex justify-center items-center py-8 sm:py-12">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
-                    <p className="text-gray-500 font-thin text-sm sm:text-base">
-                      Searching archives...
-                    </p>
+              {loading &&
+                currentUrlQuery && ( // Check URL query
+                  <div className="flex justify-center items-center py-8 sm:py-12">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
+                      <p className="text-gray-500 font-thin text-sm sm:text-base">
+                        Searching archives...
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         </div>
@@ -1103,6 +1016,112 @@ const Home = () => {
           </p>
         </div>
       </div>
+      {selectedDocumentId && (
+        <div className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-500"></div>
+      )}
+
+      {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
+      {selectedDocumentId && selectedNodeInfo && (
+        <div className="fixed left-0 top-0 h-full w-1/3 bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
+          <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-thin text-gray-900">
+                Gazette {selectedNodeInfo.node.data.title}
+              </h2>
+              <p className="text-sm text-gray-500 font-light">
+                ({selectedNodeInfo.connections.length}) Relationships found
+              </p>
+            </div>
+          </div>
+          <div className="p-4">
+            {/* Connections List */}
+            {selectedNodeInfo.connections.length > 0 && (
+              <div>
+                <div className="space-y-2">
+                  {selectedNodeInfo.connections
+                    .slice() // create a shallow copy so the original array isn't mutated
+                    .sort((a, b) => {
+                      const order = ["AS_DOCUMENT", "AMENDS", "REFERS_TO"];
+                      return order.indexOf(a.name) - order.indexOf(b.name);
+                    })
+                    .map((connection, index) => (
+                      <div
+                        key={index}
+                        className={`rounded-lg p-3 bg-gray-800
+                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-900" : "" }`}
+                        onClick={() =>
+                          handleGazetteClick(connection.document_number)
+                        }
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="text-sm font-light text-white">
+                            {connection.relatedEntityId !== "gov_01"
+                              ? "Gazette "
+                              : ""}
+                            {connection.document_number}
+                          </p>
+                          {connection.relatedEntityId !== "gov_01" ? <SquareArrowOutUpRight className="text-white w-4 h-4" /> : ""}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-ligh text-white`}>
+                            Relationship:
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-xl ${
+                              connection.name === "AS_DOCUMENT"
+                                ? "bg-cyan-200 text-cyan-800"
+                                : connection.name === "AMENDS"
+                                ? "bg-teal-200 text-teal-800"
+                                : connection.name === "REFERS_TO"
+                                ? "bg-indigo-200 text-indigo-900"
+                                : "text-black"
+                            }`}
+                          >
+                            {getReadableRelationshipName(
+                              connection.name || "DEFAULT"
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {selectedNodeInfo.connections.length === 0 && (
+              <div className="text-center py-8">
+                <CircleAlert className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">
+                  No connections found for this document
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectedDocumentId && (
+        <TracePane
+          documentId={selectedDocumentId}
+          onClose={handleClosePane}
+          onNodeSelect={handleNodeSelect}
+        />
+      )}
+
+      <style jsx>{`
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
+        .animate-slideInLeft {
+          animation: slideInLeft 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 };
