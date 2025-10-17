@@ -576,7 +576,7 @@ const Home = () => {
                         : "text-3xl sm:text-4xl"
                     }`}
                   >
-                    Archiver
+                    Archives
                   </h1>
                 </div>
               </div>
