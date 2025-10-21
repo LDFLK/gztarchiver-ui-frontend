@@ -10,6 +10,14 @@ import {
   CircleAlert,
   ScanEye,
 } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
 
 const TracePane = ({ documentId, onClose, onNodeSelect }) => {
@@ -1093,36 +1101,24 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
               Filter by Relationship
             </label>
             <div className="relative">
-              <select
+              <Select
                 value={relationshipFilter}
-                onChange={(e) => setRelationshipFilter(e.target.value)}
-                className="w-full appearance-none text-xs font-light border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 cursor-pointer hover:border-gray-400"
+                onValueChange={setRelationshipFilter}
               >
-                <option value="ALL">All Relationships</option>
-                {Object.keys(relationshipConfig)
-                  .filter((key) => key !== "DEFAULT")
-                  .map((type) => (
-                    <option key={type} value={type}>
-                      {relationshipConfig[type].allias || type}
-                    </option>
-                  ))}
-              </select>
-              {/* Custom dropdown arrow */}
-              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
+                <SelectTrigger className="w-full text-xs font-light border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer">
+                  <SelectValue placeholder="All Relationships" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL" className="text-xs hover:cursor-pointer">All Relationships</SelectItem>
+                  {Object.keys(relationshipConfig)
+                    .filter((key) => key !== "DEFAULT")
+                    .map((type) => (
+                      <SelectItem key={type} value={type} className="text-xs hover:cursor-pointer">
+                        {relationshipConfig[type].allias || type}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -1137,9 +1133,15 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
             </span>{" "}
             connection{edges.length !== 1 ? "s" : ""}
           </span>
-          <span className="text-xs text-gray-400">
-            Drag nodes or background to interact
-          </span>
+          <div>
+            <span className="text-xs text-gray-600">
+              Click nodes to expand and explore connections
+            </span>
+            <span> • </span>
+            <span className="text-xs text-gray-600">
+              Drag nodes or background to interact
+            </span>
+          </div>
         </div>
       </div>
 
