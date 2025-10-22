@@ -9,6 +9,7 @@ import {
   Shrink,
   CircleAlert,
   ScanEye,
+  Info,
 } from "lucide-react";
 import {
   Select,
@@ -527,18 +528,18 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     setDraggedNodeId(null);
   };
 
-  // ⭐ NEW HANDLER: Isolation Mode Toggle
-  const handleIsolationToggle = (e, nodeId) => {
-    e.stopPropagation(); // Prevent the main node click logic
-    if (selectedNodeId === nodeId) {
-      setIsIsolationMode((prev) => !prev);
-    } else {
-      // If they click the isolation toggle on a non-selected node,
-      // select it first, then enable isolation.
-      handleNodeClick(nodeId);
-      setIsIsolationMode(true);
-    }
-  };
+  // // ⭐ NEW HANDLER: Isolation Mode Toggle
+  // const handleIsolationToggle = (e, nodeId) => {
+  //   e.stopPropagation(); // Prevent the main node click logic
+  //   if (selectedNodeId === nodeId) {
+  //     setIsIsolationMode((prev) => !prev);
+  //   } else {
+  //     // If they click the isolation toggle on a non-selected node,
+  //     // select it first, then enable isolation.
+  //     handleNodeClick(nodeId);
+  //     setIsIsolationMode(true);
+  //   }
+  // };
 
   // --- Zoom and View Handlers ---
 
@@ -713,7 +714,6 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     isSelected,
     onDragStart,
     onMouseUp,
-    onIsolationToggle, // New prop
   }) => {
     const isGovNode = node.data.id === "gov_01";
     const displayTitle = isGovNode ? "Sri Lanka Gov" : node.data.title;
@@ -782,31 +782,24 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                 </div>
               )}
             </div>
-
-            {/* ⭐ NEW: Isolation Toggle Button */}
-            {isSelected && (
-              <button
-                onClick={(e) => onIsolationToggle(e, node.id)}
-                className={`ml-1 p-1 rounded-full transition-colors duration-200 flex-shrink-0 ${
-                  isActiveInIsolation
-                    ? "bg-cyan-500 text-white hover:bg-cyan-600"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                title={
-                  isActiveInIsolation
-                    ? "Exit Isolation Mode"
-                    : "Isolate Node View"
-                }
-              >
-                <ScanEye className="w-4 h-4" />
-              </button>
-            )}
-            {/* ********************************* */}
           </div>
         </div>
       </div>
     );
   };
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      // Detect mobile or tablet (less than 1024px width)
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    handleResize(); // Run on mount
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <>
@@ -1015,7 +1008,6 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                       isSelected={selectedNodeId === node.id}
                       onDragStart={handleNodeDragStart}
                       onMouseUp={handleNodeMouseUp} // Click/drag handler
-                      onIsolationToggle={handleIsolationToggle} // New toggle handler
                     />
                   ))}
                 </div>
@@ -1109,11 +1101,20 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                   <SelectValue placeholder="All Relationships" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL" className="text-xs hover:cursor-pointer">All Relationships</SelectItem>
+                  <SelectItem
+                    value="ALL"
+                    className="text-xs hover:cursor-pointer"
+                  >
+                    All Relationships
+                  </SelectItem>
                   {Object.keys(relationshipConfig)
                     .filter((key) => key !== "DEFAULT")
                     .map((type) => (
-                      <SelectItem key={type} value={type} className="text-xs hover:cursor-pointer">
+                      <SelectItem
+                        key={type}
+                        value={type}
+                        className="text-xs hover:cursor-pointer"
+                      >
                         {relationshipConfig[type].allias || type}
                       </SelectItem>
                     ))}
@@ -1143,6 +1144,24 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
             </span>
           </div>
         </div>
+
+        {isMobile && (
+          <div className="absolute inset-0 bg-white/30 z-50 flex items-center justify-center text-center px-6 backdrop-blur-xs">
+            <div className="bg-transparent shadow-[0_0_15px_rgba(0,0,0,0.2)] px-6 py-6 rounded-lg flex flex-col items-center justify-center text-center">
+              <Info className="text-gray-800 mb-3 w-6 h-6" />
+              <p className="text-gray-800 text-md font-medium">
+                Please use a Desktop to explore connections. <br />
+                Mobile and Tablet devices are not supported yet.
+              </p>
+              <button
+                onClick={() => window.history.back()}
+                className="mt-4 bg-transparent text-gray-800 rounded-lg hover:bg-gray-700 transition-all"
+              >
+                ← 
+              </button> 
+            </div>
+          </div>
+        )}
       </div>
 
       {showTooltip && (

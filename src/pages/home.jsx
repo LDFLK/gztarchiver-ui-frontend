@@ -737,6 +737,7 @@ const Home = () => {
                 )}
               </div>
 
+              
               <div
                 className={`transition-all duration-700 ease-out${
                   currentUrlQuery // Check URL query
