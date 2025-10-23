@@ -20,10 +20,12 @@ import {
   Building,
   CircleAlert,
   SquareArrowOutUpRight,
+  MessageSquare,
+  Linkedin,
+  Github,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
-import SocialMediaSidebar from "../components/socialMediaSideBar";
 import ErrorCard from "../components/errorCard";
 
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
@@ -638,8 +640,6 @@ const Home = () => {
 
   return (
     <>
-      <SocialMediaSidebar />
-
       {/* Modern Tech Archive Background */}
       <div className="min-h-screen bg-gray-950 relative overflow-hidden">
         {/* Tech Grid Background */}
@@ -658,7 +658,7 @@ const Home = () => {
         >
           {/* Header Section */}
           <header className="relative z-10 border-b border-gray-800/50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
                 <div className="flex items-center space-x-3">
@@ -965,9 +965,42 @@ const Home = () => {
           {/* Footer */}
           <footer className="relative z-10 border-t border-gray-800/50 mt-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <p className="text-center text-gray-400 text-sm">
-                Open Data @{new Date().getFullYear()}. All rights reserved.
-              </p>
+              <div className="flex items-center justify-between">
+                {/* Copyright */}
+                <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer">
+                <p className="text-gray-400 text-sm">
+                    <span className="hover:text-white">Open Data</span> @{new Date().getFullYear()}. // All rights reserved.
+                  </p>
+                </a>
+                
+                {/* Social Media Links */}
+                <div className="flex items-center space-x-4">
+                  <a
+                    href="https://discord.gg/wYKFyVEY"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-white transition-all duration-200 hover:scale-110"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/company/lankadata/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-white transition-all hover:scale-110"
+                  >
+                    <Linkedin className="w-5 h-5" />
+                  </a>
+                  <a
+                    href="https://github.com/LDFLK"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-white transition-all duration-200 hover:scale-110"
+                  >
+                    <Github className="w-5 h-5" />
+                  </a>
+                </div>
+              </div>
             </div>
           </footer>
         </div>
