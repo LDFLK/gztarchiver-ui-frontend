@@ -534,7 +534,7 @@ const Home = () => {
     data: apiData,
     isLoading,
     error: queryError,
-  } = useDashboardStats(!currentUrlQuery);
+  } = useDashboardStats(true); // Always fetch dashboard data
   // Process the data when it arrives
   useEffect(() => {
     if (apiData) {
@@ -603,9 +603,9 @@ const Home = () => {
     }
   }, [isLoading, currentUrlQuery]);
 
-  // Start rapid counters when loading starts
+  // Start rapid counters when loading starts (always when data is loading)
   useEffect(() => {
-    if (loading && !currentUrlQuery) {
+    if (isLoading) {
       // Reset to 0 first
       setAnimatedStats({
         totalDocs: 0,
@@ -615,11 +615,11 @@ const Home = () => {
       });
       // Start rapid counting
       startRapidCounters();
-    } else if (!loading) {
+    } else if (!isLoading) {
       // Stop rapid counters when not loading
       stopRapidCounters();
     }
-  }, [loading, currentUrlQuery]);
+  }, [isLoading]);
 
   // Sync error state
   useEffect(() => {
@@ -653,9 +653,9 @@ const Home = () => {
 
         <div
           className={`min-h-screen flex flex-col transition-all duration-500 ${
-            selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
-          }`}
-        >
+          selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
+        }`}
+      >
           {/* Header Section */}
           <header className="relative z-10 border-b border-gray-800/50">
             <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
@@ -671,43 +671,41 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Stats Overview - Compact */}
-                {!currentUrlQuery && (
-                  <div className="hidden md:flex items-center space-x-6">
-                    {/* Total Documents */}
-                    <div className="text-center">
-                      <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                        {loading ? 
-                          animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
-                          (apiData?.total_docs?.toLocaleString() || "0")
-                        }
-                      </div>
-                      <div className="text-xs text-gray-400">Total Documents</div>
+                {/* Stats Overview - Always Visible */}
+                <div className="hidden md:flex items-center space-x-6">
+                  {/* Total Documents */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
+                        (apiData?.total_docs?.toLocaleString() || "0")
+                      }
                     </div>
-                    
-                    {/* Languages Count */}
-                    <div className="text-center">
-                      <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                        {loading ? 
-                          animatedStats.languages.toString().padStart(2, '0') : 
-                          (languages.length || 0)
-                        }
-                      </div>
-                      <div className="text-xs text-gray-400">Languages</div>
-                    </div>
-                    
-                    {/* Years Range */}
-                    <div className="text-center">
-                      <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                        {loading ? 
-                          `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
-                          `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
-                        }
-                      </div>
-                      <div className="text-xs text-gray-400">Years</div>
-                    </div>
+                    <div className="text-xs text-gray-400">Total Documents</div>
                   </div>
-                )}
+                  
+                  {/* Languages Count */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        animatedStats.languages.toString().padStart(2, '0') : 
+                        (languages.length || 0)
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Languages</div>
+                  </div>
+                  
+                  {/* Years Range */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
+                        `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Years</div>
+                  </div>
+                </div>
               </div>
             </div>
           </header>
@@ -745,49 +743,49 @@ const Home = () => {
                     <div className="relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-2">
                       <div className="flex items-center">
                         <Search className="w-5 h-5 text-gray-400 ml-4" />
-                        <input
-                          type="text"
-                          placeholder="Search documents, IDs, types, date or source..."
+                  <input
+                    type="text"
+                    placeholder="Search documents, IDs, types, date or source..."
                           value={searchInput}
                           onChange={(e) => setSearchInput(e.target.value)}
-                          onKeyDown={handleKeyPress}
-                          onFocus={handleSearchFocus}
+                    onKeyDown={handleKeyPress}
+                    onFocus={handleSearchFocus}
                           className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-4 focus:outline-none"
                         />
                         <div className="flex items-center space-x-2 mr-2">
                           {searchInput && (
-                            <button
-                              onClick={clearSearch}
+                      <button
+                        onClick={clearSearch}
                               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                            >
+                      >
                               <X className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={toggleQuickSearch}
-                            className={`p-2 rounded-lg transition-colors ${
-                              showQuickSearch
+                      </button>
+                    )}
+                    <button
+                      onClick={toggleQuickSearch}
+                            className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
+                        showQuickSearch
                                 ? "text-cyan-400 bg-cyan-400/10"
-                                : "text-gray-400 hover:text-white hover:bg-gray-700"
-                            }`}
-                          >
+                                : "text-gray-400 hover:text-cyan-300"
+                      }`}
+                    >
                             <FileSearch className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleSearch(1)}
-                            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-200"
-                          >
-                            Search
-                          </button>
+                    </button>
+                  <button
+                    onClick={() => handleSearch(1)}
+                            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer"
+                  >
+                    Search
+                  </button>
                         </div>
                       </div>
                     </div>
-                  </div>
+                </div>
 
                   {/* Quick Search Panel */}
-                  <div
+                <div
                     className={`mt-4 transition-all duration-300 ${
-                      showQuickSearch
+                    showQuickSearch
                         ? "max-h-96 opacity-100"
                         : "max-h-0 opacity-0 overflow-hidden"
                     }`}
@@ -795,33 +793,33 @@ const Home = () => {
                     <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-white">Quick Search</h3>
-                        <button
-                          onClick={() => setShowQuickSearch(false)}
+                      <button
+                        onClick={() => setShowQuickSearch(false)}
                           className="text-gray-400 hover:text-white"
-                        >
+                      >
                           <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                      
+                      </button>
+                    </div>
+
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
                         {quickSearchOptions.map((option) => {
-                          const IconComponent = option.icon;
-                          return (
-                            <button
-                              key={option.id}
-                              onClick={() => handleQuickSearch(option)}
+                        const IconComponent = option.icon;
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => handleQuickSearch(option)}
                               className={`flex items-center space-x-3 p-3 rounded-lg border transition-all ${
-                                activeFilters.some((f) => f.id === option.id)
+                              activeFilters.some((f) => f.id === option.id)
                                   ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
                                   : "bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:border-gray-500"
                               }`}
                             >
                               <IconComponent className="w-4 h-4" />
                               <span className="text-sm font-medium">{option.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                          </button>
+                        );
+                      })}
+                    </div>
 
                       <div className="border-t border-gray-700 pt-4">
                         <p className="text-sm text-gray-400 mb-3">Search Examples:</p>
@@ -832,29 +830,29 @@ const Home = () => {
                               className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
                             >
                               {example}
-                            </span>
+                        </span>
                           ))}
-                        </div>
                       </div>
                     </div>
                   </div>
+                </div>
 
                   {/* Active Filters */}
-                  {activeFilters.length > 0 && (
+                {activeFilters.length > 0 && (
                     <div className="mt-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-sm text-gray-400">Active filters:</span>
-                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-400">Active filters:</span>
                       <div className="flex flex-wrap gap-2">
                         {activeFilters.map((filter) => (
                           <div
                             key={filter.id}
-                            className="flex items-center space-x-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400"
+                                className="flex items-center space-x-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400"
                           >
-                            <span className="text-sm font-medium">{filter.label}</span>
+                                <span className="text-xs font-medium">{filter.label}</span>
                             <button
                               onClick={() => removeFilter(filter)}
-                              className="text-cyan-400 hover:text-white"
+                                  className="text-cyan-400 hover:text-white hover:cursor-pointer"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -862,6 +860,8 @@ const Home = () => {
                         ))}
                       </div>
                     </div>
+                  </div>
+              </div>
                   )}
 
                   {/* Tags and Criteria - Directly under search bar */}
@@ -872,22 +872,22 @@ const Home = () => {
                           <>
                             <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
                               <div className="w-16 h-4"></div>
-                            </div>
+                              </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                                    </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                                    </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                              </div>
                             <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
                               <div className="w-16 h-4 "></div>
                             </div>
                             <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
                               <div className="w-16 h-4 "></div>
-                            </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                            </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                            </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                            </div>
+                    </div>
                           </>
                         ) : types.length > 0 ? (
                           types.map((type, index) => (
@@ -901,9 +901,9 @@ const Home = () => {
                           ))
                         ) : (
                           <div className="text-gray-500 text-sm">No document types available</div>
-                        )}
-                      </div>
-                    </div>
+                                  )}
+                                </div>
+                              </div>
 
                     <div>
                       <div className="flex flex-wrap gap-2">
@@ -916,50 +916,50 @@ const Home = () => {
                             {criteria}
                           </button>
                         ))}
-                      </div>
+                            </div>
                     </div>
                   </div> */}
-                </div>
+              </div>
 
 
                 {/* Search Results Section */}
-                <div
-                  className={`transition-all duration-700 ease-out ${
+              <div
+                className={`transition-all duration-700 ease-out ${
                     currentUrlQuery
-                      ? "opacity-100 scale-100 pointer-events-auto"
-                      : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                  }`}
-                >
-                  {currentUrlQuery && (
-                    <SearchResults
-                      query={currentUrlQuery}
-                      results={searchResults}
-                      pagination={pagination}
-                      currentPage={currentPage}
-                      onPageChange={handlePageChange}
-                      onBack={handleBack}
-                      loading={loading}
-                      limit={limit}
-                      showLimitDropdown={showLimitDropdown}
-                      onTraceClick={handleTraceClick}
-                      handleLimitChange={handleLimitChange}
-                      setShowLimitDropdown={setShowLimitDropdown}
-                    />
-                  )}
-                </div>
+                    ? "opacity-100 scale-100 pointer-events-auto"
+                    : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
+                }`}
+              >
+                {currentUrlQuery && (
+                  <SearchResults
+                    query={currentUrlQuery}
+                    results={searchResults}
+                    pagination={pagination}
+                    currentPage={currentPage}
+                    onPageChange={handlePageChange}
+                    onBack={handleBack}
+                    loading={loading}
+                    limit={limit}
+                    showLimitDropdown={showLimitDropdown}
+                    onTraceClick={handleTraceClick}
+                    handleLimitChange={handleLimitChange}
+                    setShowLimitDropdown={setShowLimitDropdown}
+                  />
+                )}
+              </div>
 
                 {/* Loading State */}
                 {loading && currentUrlQuery && (
                   <div className="flex justify-center items-center py-12">
                     <div className="flex flex-col items-center space-y-4">
                       <div className="w-8 h-8 border-2 border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
-                      <p className="text-gray-400 font-medium">Searching archives...</p>
+                      {/* <p className="text-gray-400 font-medium">Searching archives...</p> */}
                     </div>
                   </div>
                 )}
 
-              </div>
             </div>
+          </div>
           </main>
 
           {/* Footer */}
@@ -999,8 +999,8 @@ const Home = () => {
                   >
                     <Github className="w-5 h-5" />
                   </a>
-                </div>
-              </div>
+        </div>
+      </div>
             </div>
           </footer>
         </div>
