@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Linkedin,
   Github,
+  ChevronUp,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
@@ -47,6 +48,7 @@ const Home = () => {
     yearsTo: 0
   });
   const [animationIntervals, setAnimationIntervals] = useState([]);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const currentUrlQuery = urlParams.get("search") || "";
@@ -494,6 +496,14 @@ const Home = () => {
     setAnimationIntervals([]);
   };
 
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   // Remove individual filter
   const removeFilter = (filterToRemove) => {
     let newQuery = currentUrlQuery;
@@ -637,6 +647,18 @@ const Home = () => {
       stopRapidCounters();
     };
   }, []);
+
+  // Scroll listener for scroll to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      // Show button when scrolled down more than 300px and there are search results
+      setShowScrollTop(scrollTop > 300 && currentUrlQuery);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentUrlQuery]);
 
   return (
     <>
@@ -1096,6 +1118,17 @@ const Home = () => {
           onClose={handleClosePane}
           onNodeSelect={handleNodeSelect}
         />
+      )}
+
+      {/* Scroll to Top Button - Only show when on search results page */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full shadow-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-110 flex items-center justify-center group hover:cursor-pointer"
+          title="Go to top"
+        >
+          <ChevronUp className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+        </button>
       )}
 
       <style jsx>{`
