@@ -662,12 +662,12 @@ const Home = () => {
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
+                  {/* <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
                     <FileArchive className="w-6 h-6 text-white" />
-                  </div>
+                  </div> */}
                   <div>
-                    <h1 className="text-xl font-bold text-white">Archives</h1>
-                    <p className="text-xs text-gray-400">Sri Lankan Government Documents Archive</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
+                    {/* <p className="text-xs text-gray-400">Sri Lankan Government Documents Archive</p> */}
                   </div>
                 </div>
 
@@ -727,7 +727,7 @@ const Home = () => {
                   <div className="text-center mb-12">
                     <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
                       Government
-                      <span className="block bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                      <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
                     </h2>
