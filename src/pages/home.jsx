@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDashboardStats } from "../hooks/useDashboardQuery";
 import SearchResults from "../components/searchResults";
@@ -38,6 +38,13 @@ const Home = () => {
   const [searchCriteria, setSearchCriteria] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
+  const [animatedStats, setAnimatedStats] = useState({
+    totalDocs: 0,
+    languages: 0,
+    yearsFrom: 0,
+    yearsTo: 0
+  });
+  const [animationIntervals, setAnimationIntervals] = useState([]);
 
   const [searchInput, setSearchInput] = useState("");
   const currentUrlQuery = urlParams.get("search") || "";
@@ -437,6 +444,54 @@ const Home = () => {
     window.open(newUrl, "_blank");
   };
 
+  // Rapid continuous counter function
+  const startRapidCounters = () => {
+    // Clear any existing intervals
+    animationIntervals.forEach(interval => clearInterval(interval));
+    
+    const intervals = [];
+    
+    // Total Documents - rapid increment
+    const totalDocsInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        totalDocs: Math.floor(Math.random() * 99999) + 1000
+      }));
+    }, 50); // Very fast - every 50ms
+    
+    // Languages - rapid increment
+    const languagesInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        languages: Math.floor(Math.random() * 20) + 1
+      }));
+    }, 100); // Fast - every 100ms
+    
+    // Years - rapid increment
+    const yearsFromInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        yearsFrom: Math.floor(Math.random() * 50) + 1970
+      }));
+    }, 80); // Fast - every 80ms
+    
+    const yearsToInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        yearsTo: Math.floor(Math.random() * 30) + 2020
+      }));
+    }, 80); // Fast - every 80ms
+    
+    intervals.push(totalDocsInterval, languagesInterval, yearsFromInterval, yearsToInterval);
+    setAnimationIntervals(intervals);
+  };
+
+  // Stop rapid counters
+  const stopRapidCounters = () => {
+    animationIntervals.forEach(interval => clearInterval(interval));
+    setAnimationIntervals([]);
+  };
+
   // Remove individual filter
   const removeFilter = (filterToRemove) => {
     let newQuery = currentUrlQuery;
@@ -520,6 +575,22 @@ const Home = () => {
       setLanguages(apiData.available_languages || []);
       setTypes(apiData.document_types || []);
       setSearchCriteria(["id:", "type:", "date:", "available:", "source:"]);
+
+      // Stop rapid counters and set real values when data loads
+      stopRapidCounters();
+      
+      const totalDocs = parseInt(apiData.total_docs) || 0;
+      const languagesCount = (apiData.available_languages || []).length;
+      const yearsFrom = parseInt(apiData.years_covered?.from) || 0;
+      const yearsTo = parseInt(apiData.years_covered?.to) || 0;
+
+      // Set real values
+      setAnimatedStats({
+        totalDocs: totalDocs,
+        languages: languagesCount,
+        yearsFrom: yearsFrom,
+        yearsTo: yearsTo
+      });
     }
   }, [apiData]);
 
@@ -529,6 +600,24 @@ const Home = () => {
       setLoading(isLoading);
     }
   }, [isLoading, currentUrlQuery]);
+
+  // Start rapid counters when loading starts
+  useEffect(() => {
+    if (loading && !currentUrlQuery) {
+      // Reset to 0 first
+      setAnimatedStats({
+        totalDocs: 0,
+        languages: 0,
+        yearsFrom: 0,
+        yearsTo: 0
+      });
+      // Start rapid counting
+      startRapidCounters();
+    } else if (!loading) {
+      // Stop rapid counters when not loading
+      stopRapidCounters();
+    }
+  }, [loading, currentUrlQuery]);
 
   // Sync error state
   useEffect(() => {
@@ -540,192 +629,232 @@ const Home = () => {
     }
   }, [queryError]);
 
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      stopRapidCounters();
+    };
+  }, []);
+
   return (
     <>
       <SocialMediaSidebar />
 
-      <div
-        className={`min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col transition-all duration-500 ${
-          selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
-        }`}
-      >
+      {/* Modern Tech Archive Background */}
+      <div className="min-h-screen bg-gray-950 relative overflow-hidden">
+        {/* Tech Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+        
+        {/* Animated Tech Lines */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" style={{animationDelay: '1s'}}></div> */}
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse" style={{animationDelay: '1s'}}></div>
+        </div>
+
         <div
-          className={`flex-1 flex justify-center transition-all duration-700 ease-out ${
-            currentUrlQuery ? "items-start pt-4 sm:pt-8" : "items-center"
+          className={`min-h-screen flex flex-col transition-all duration-500 ${
+            selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
           }`}
         >
-          <div className="w-full">
-            <div
-              className={`bg-white/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 transition-all duration-700 ${
-                currentUrlQuery ? "bg-white/90" : ""
-              }`}
-            >
+          {/* Header Section */}
+          <header className="relative z-10 border-b border-gray-800/50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                {/* Logo */}
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
+                    <FileArchive className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-white">Archives</h1>
+                    <p className="text-xs text-gray-400">Sri Lankan Government Documents Archive</p>
+                  </div>
+                </div>
+
+                {/* Stats Overview - Compact */}
+                {!currentUrlQuery && (
+                  <div className="hidden md:flex items-center space-x-6">
+                    {/* Total Documents */}
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                        {loading ? 
+                          animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
+                          (apiData?.total_docs?.toLocaleString() || "0")
+                        }
+                      </div>
+                      <div className="text-xs text-gray-400">Total Documents</div>
+                    </div>
+                    
+                    {/* Languages Count */}
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                        {loading ? 
+                          animatedStats.languages.toString().padStart(2, '0') : 
+                          (languages.length || 0)
+                        }
+                      </div>
+                      <div className="text-xs text-gray-400">Languages</div>
+                    </div>
+                    
+                    {/* Years Range */}
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                        {loading ? 
+                          `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
+                          `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
+                        }
+                      </div>
+                      <div className="text-xs text-gray-400">Years</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className={`flex-1 relative z-10 transition-all duration-700 ease-out ${
+            currentUrlQuery ? "flex items-start justify-center" : "flex items-center justify-center"
+          }`}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
               <div
-                className={`text-center transition-all duration-500 ${
-                  currentUrlQuery ? "mb-6 sm:mb-8" : "mb-8 sm:mb-12"
+                className={`transition-all duration-700 ease-out ${
+                  currentUrlQuery ? "pt-4" : ""
                 }`}
               >
-                <div className="flex items-center justify-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl sm:rounded-2xl flex items-center justify-center">
-                    <FileArchive className="text-white w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
+                {/* Hero Section */}
+                {!currentUrlQuery && (
+                  <div className="text-center mb-12">
+                    <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+                      Government
+                      <span className="block bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                        Document Archive
+                      </span>
+                    </h2>
+                    <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+                      Advanced search and analysis platform for government documents, 
+                      enabling transparency and data-driven insights.
+                    </p>
                   </div>
-                  <h1
-                    className={`font-thin text-gray-600 flex items-center transition-all duration-500 ${
-                      currentUrlQuery
-                        ? "text-2xl sm:text-3xl"
-                        : "text-3xl sm:text-4xl"
-                    }`}
-                  >
-                    Archives
-                  </h1>
-                </div>
-              </div>
+                )}
 
-              <div className="flex flex-col items-center mb-6 sm:mb-8">
-                <div className="relative w-full max-w-4xl search-input-container">
-                  <input
-                    type="text"
-                    placeholder="Search documents, IDs, types, date or source..."
-                    value={searchInput} // Use local state for input
-                    onChange={(e) => setSearchInput(e.target.value)} // Update local state on change
-                    onKeyDown={handleKeyPress}
-                    onFocus={handleSearchFocus}
-                    className="w-full pl-10 sm:pl-14 pr-32 sm:pr-40 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
-                  focus:outline-none focus:ring-0 focus:ring-black
-                  focus:shadow-lg transition-shadow duration-200
-                  bg-white/80 backdrop-blur-sm placeholder-gray-400 placeholder:font-thin font-thin"
-                  />
-                  <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
-
-                  <div className="absolute right-20 sm:right-26 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                    {searchInput && ( // Check local state for clear button
-                      <button
-                        onClick={clearSearch}
-                        className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200"
-                      >
-                        <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                    )}
-                    <button
-                      onClick={toggleQuickSearch}
-                      className={`p-1 rounded-md transition-all duration-200 hover:cursor-pointer ${
-                        showQuickSearch
-                          ? "text-gray-700 bg-gray-100 scale-105"
-                          : "text-gray-400 hover:text-gray-600 hover:scale-105"
-                      }`}
-                    >
-                      <FileSearch className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => handleSearch(1)}
-                    className="absolute right-0 top-0 h-full bg-gray-800 hover:bg-gray-900 hover:cursor-pointer text-white px-4 sm:px-6 rounded-r-xl sm:rounded-r-2xl text-xs sm:text-sm font-thin transition-colors duration-200 focus:outline-none"
-                  >
-                    Search
-                  </button>
-                </div>
-
-                <div
-                  className={`w-full max-w-4xl overflow-hidden quick-search-container transition-all duration-300 ease-out rounded-xl sm:rounded-2xl shadow-lg ${
-                    showQuickSearch
-                      ? "mt-3 sm:mt-4 max-h-96 opacity-100"
-                      : "mt-0 max-h-0 opacity-0"
-                  }`}
-                >
-                  <div
-                    className={`bg-white/90 backdrop-blur-sm border border-gray-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 transform transition-all duration-300 ease-out ${
-                      showQuickSearch
-                        ? "scale-100 translate-y-0"
-                        : "scale-95 -translate-y-2"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <h3 className="text-sm sm:text-base font-medium text-gray-700">
-                        Quick Search
-                      </h3>
-                      <button
-                        onClick={() => setShowQuickSearch(false)}
-                        className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200 hover:scale-110"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                      {quickSearchOptions.map((option, index) => {
-                        const IconComponent = option.icon;
-                        return (
+                {/* Search Section */}
+                <div className="max-w-4xl mx-auto mb-8">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl"></div>
+                    <div className="relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-2">
+                      <div className="flex items-center">
+                        <Search className="w-5 h-5 text-gray-400 ml-4" />
+                        <input
+                          type="text"
+                          placeholder="Search documents, IDs, types, date or source..."
+                          value={searchInput}
+                          onChange={(e) => setSearchInput(e.target.value)}
+                          onKeyDown={handleKeyPress}
+                          onFocus={handleSearchFocus}
+                          className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-4 focus:outline-none"
+                        />
+                        <div className="flex items-center space-x-2 mr-2">
+                          {searchInput && (
+                            <button
+                              onClick={clearSearch}
+                              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
-                            key={option.id}
-                            onClick={() => handleQuickSearch(option)}
-                            className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:cursor-pointer ${
-                              activeFilters.some((f) => f.id === option.id)
-                                ? option.color + " shadow-md"
-                                : "bg-white text-gray-600 border-gray-100 hover:bg-gray-50"
+                            onClick={toggleQuickSearch}
+                            className={`p-2 rounded-lg transition-colors ${
+                              showQuickSearch
+                                ? "text-cyan-400 bg-cyan-400/10"
+                                : "text-gray-400 hover:text-white hover:bg-gray-700"
                             }`}
-                            style={{ animationDelay: `${index * 50}ms` }}
                           >
-                            <IconComponent className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-xs sm:text-sm font-medium truncate">
-                              {option.label}
-                            </span>
+                            <FileSearch className="w-4 h-4" />
                           </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-gray-100">
-                      <p className="text-xs sm:text-sm text-gray-500 mb-2">
-                        Search examples:
-                      </p>
-                      <div className="flex flex-wrap gap-1 sm:gap-2">
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          date:2015
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          date:2015-05
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          type:people
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          type:organisational
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          id:2030-05
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          available:yes
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          available:no
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          "exact phrase"
-                        </span>
+                          <button
+                            onClick={() => handleSearch(1)}
+                            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-200"
+                          >
+                            Search
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Active Filter Display - Now shows all active filters */}
-                {activeFilters.length > 0 && (
-                  <div className="w-full max-w-4xl mt-3 sm:mt-4">
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs sm:text-sm text-gray-500 mt-1 flex-shrink-0">
-                        Active filters:
-                      </span>
+                  {/* Quick Search Panel */}
+                  <div
+                    className={`mt-4 transition-all duration-300 ${
+                      showQuickSearch
+                        ? "max-h-96 opacity-100"
+                        : "max-h-0 opacity-0 overflow-hidden"
+                    }`}
+                  >
+                    <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-white">Quick Search</h3>
+                        <button
+                          onClick={() => setShowQuickSearch(false)}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                        {quickSearchOptions.map((option) => {
+                          const IconComponent = option.icon;
+                          return (
+                            <button
+                              key={option.id}
+                              onClick={() => handleQuickSearch(option)}
+                              className={`flex items-center space-x-3 p-3 rounded-lg border transition-all ${
+                                activeFilters.some((f) => f.id === option.id)
+                                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
+                                  : "bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:border-gray-500"
+                              }`}
+                            >
+                              <IconComponent className="w-4 h-4" />
+                              <span className="text-sm font-medium">{option.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="border-t border-gray-700 pt-4">
+                        <p className="text-sm text-gray-400 mb-3">Search Examples:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
+                            <span
+                              key={example}
+                              className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
+                            >
+                              {example}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active Filters */}
+                  {activeFilters.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-sm text-gray-400">Active filters:</span>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {activeFilters.map((filter) => (
                           <div
                             key={filter.id}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-200 ${filter.color}`}
+                            className="flex items-center space-x-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400"
                           >
-                            <span className="font-medium">{filter.label}</span>
+                            <span className="text-sm font-medium">{filter.label}</span>
                             <button
                               onClick={() => removeFilter(filter)}
-                              className="hover:bg-black/10 rounded-full p-0.5 transition-colors duration-150 hover:cursor-pointer"
+                              className="text-cyan-400 hover:text-white"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -733,303 +862,130 @@ const Home = () => {
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
 
-              
-              <div
-                className={`transition-all duration-700 ease-out${
-                  currentUrlQuery // Check URL query
-                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                    : "opacity-100 scale-100 pointer-events-auto"
-                }`}
-              >
-                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
-                {!currentUrlQuery && (
-                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
-                      {error ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                        </>
-                      ) : loading ? (
-                        <>
-                          <SkeletonCard />
-                          <SkeletonCard />
-                        </>
-                      ) : stats.length === 0 ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                        </>
-                      ) : (
-                        stats
-                          .filter(
-                            (stat) =>
-                              stat.value === "criteria" ||
-                              stat.value === "types"
-                          )
-                          .map((stat, index) => (
-                            <div
-                              key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 flex items-stretch"
-                              style={{
-                                transitionDelay: `${index * 100}ms`,
-                              }}
-                            >
-                              {/* Icon on the left */}
-                              <div className="flex-shrink-0 flex items-center justify-center mr-4">
-                                {stat.icon}
-                              </div>
-
-                              {/* Content on the right */}
-                              <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-3">
-                                {stat.value === "types" ? (
-                                  <>
-                                    <p className="text-xs sm:text-sm font-light text-gray-600">
-                                      {stat.title}
-                                    </p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {types.map((type, typeIndex) => (
-                                        <span
-                                          key={typeIndex}
-                                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
-                                          onClick={() => handleTypes(type)}
-                                        >
-                                          {type}
-                                        </span>
-                                      ))}
-                                    </div>
-                                    <p className="text-xs font-thin text-gray-500">
-                                      {stat.description}
-                                    </p>
-                                  </>
-                                ) : stat.value === "criteria" ? (
-                                  <>
-                                    <p className="text-xs sm:text-sm font-light text-gray-600">
-                                      {stat.title}
-                                    </p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {searchCriteria.map(
-                                        (criteria, criteriaIndex) => (
-                                          <span
-                                            key={criteriaIndex}
-                                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
-                                            onClick={() => handleCriteria(criteria)}
-                                          >
-                                            {criteria}
-                                          </span>
-                                        )
-                                      )}
-                                    </div>
-                                    <p className="text-xs font-thin text-gray-500">
-                                      {stat.description}
-                                    </p>
-                                  </>
-                                ) : null}
-                              </div>
+                  {/* Tags and Criteria - Directly under search bar */}
+                  {/* <div className="mt-2">
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-2">
+                        {loading ? (
+                          <>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4"></div>
                             </div>
-                          ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div
-                className={`transition-all duration-700 ease-out${
-                  currentUrlQuery // Check URL query
-                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                    : "opacity-100 scale-100 pointer-events-auto"
-                }`}
-              >
-                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
-                {!currentUrlQuery && (
-                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto mt-5">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
-                      {error ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                        </>
-                      ) : loading ? (
-                        <>
-                          <SkeletonCard />
-                          <SkeletonCard />
-                          <SkeletonCard />
-                        </>
-                      ) : stats.length === 0 ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                        </>
-                      ) : (
-                        stats
-                          .filter(
-                            (stat) =>
-                              !["criteria", "types"].includes(stat.value)
-                          )
-                          .map((stat, index) => (
-                            <div
-                              key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all"
-                              style={{
-                                transitionDelay: `${index * 100}ms`,
-                              }}
-                            >
-                              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                                <div className="flex-shrink-0">{stat.icon}</div>
-                                <div className="space-y-1 sm:space-y-2">
-                                  {stat.value === "languages" ? (
-                                    <>
-                                      <p className="text-xs sm:text-sm font-light text-gray-600">
-                                        {stat.title}
-                                      </p>
-
-                                      <div className="flex flex-wrap justify-center gap-1">
-                                        {languages.map(
-                                          (language, langIndex) => (
-                                            <span
-                                              key={langIndex}
-                                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
-                                            >
-                                              {language}
-                                            </span>
-                                          )
-                                        )}
-                                      </div>
-
-                                      <p className="text-xs font-thin text-gray-500">
-                                        {stat.description}
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                                        {stat.value}
-                                      </h3>
-                                      <p className="text-xs sm:text-sm font-light text-gray-600">
-                                        {stat.title}
-                                      </p>
-                                      <p className="text-xs font-thin text-gray-500">
-                                        {stat.description}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
                             </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                            </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                            </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                            </div>
+                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
+                              <div className="w-16 h-4 "></div>
+                            </div>
+                          </>
+                        ) : types.length > 0 ? (
+                          types.map((type, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleTypes(type)}
+                              className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-sm font-medium hover:bg-green-500/10 hover:border-green-500/50 hover:text-green-400 transition-all duration-200"
+                            >
+                              {type}
+                            </button>
                           ))
-                      )}
+                        ) : (
+                          <div className="text-gray-500 text-sm">No document types available</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex flex-wrap gap-2">
+                        {["id:", "type:", "date:", "available:", "source:"].map((criteria, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleCriteria(criteria)}
+                            className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-sm font-mono hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-blue-400 transition-all duration-200"
+                          >
+                            {criteria}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div> */}
+                </div>
+
+
+                {/* Search Results Section */}
+                <div
+                  className={`transition-all duration-700 ease-out ${
+                    currentUrlQuery
+                      ? "opacity-100 scale-100 pointer-events-auto"
+                      : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
+                  }`}
+                >
+                  {currentUrlQuery && (
+                    <SearchResults
+                      query={currentUrlQuery}
+                      results={searchResults}
+                      pagination={pagination}
+                      currentPage={currentPage}
+                      onPageChange={handlePageChange}
+                      onBack={handleBack}
+                      loading={loading}
+                      limit={limit}
+                      showLimitDropdown={showLimitDropdown}
+                      onTraceClick={handleTraceClick}
+                      handleLimitChange={handleLimitChange}
+                      setShowLimitDropdown={setShowLimitDropdown}
+                    />
+                  )}
+                </div>
+
+                {/* Loading State */}
+                {loading && currentUrlQuery && (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="w-8 h-8 border-2 border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
+                      <p className="text-gray-400 font-medium">Searching archives...</p>
                     </div>
                   </div>
                 )}
-              </div>
 
-              <div
-                className={`transition-all duration-700 ease-out ${
-                  currentUrlQuery // Check URL query
-                    ? "opacity-100 scale-100 pointer-events-auto"
-                    : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                }`}
-              >
-                {/* Use currentUrlQuery for the results component */}
-                {currentUrlQuery && (
-                  <SearchResults
-                    query={currentUrlQuery}
-                    results={searchResults}
-                    pagination={pagination}
-                    currentPage={currentPage}
-                    onPageChange={handlePageChange}
-                    onBack={handleBack}
-                    loading={loading}
-                    limit={limit}
-                    showLimitDropdown={showLimitDropdown}
-                    onTraceClick={handleTraceClick}
-                    handleLimitChange={handleLimitChange}
-                    setShowLimitDropdown={setShowLimitDropdown}
-                  />
-                )}
               </div>
-
-              {loading &&
-                currentUrlQuery && ( // Check URL query
-                  <div className="flex justify-center items-center py-8 sm:py-12">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
-                      <p className="text-gray-500 font-thin text-sm sm:text-base">
-                        Searching archives...
-                      </p>
-                    </div>
-                  </div>
-                )}
             </div>
-          </div>
-        </div>
+          </main>
 
-        <div className="pt-4 sm:pt-6 border-t border-gray-100">
-          <p className="text-xs text-gray-400 text-center">
-            Open Data @{new Date().getFullYear()}. All rights reserved.
-          </p>
+          {/* Footer */}
+          <footer className="relative z-10 border-t border-gray-800/50 mt-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <p className="text-center text-gray-400 text-sm">
+                Open Data @{new Date().getFullYear()}. All rights reserved.
+              </p>
+            </div>
+          </footer>
         </div>
       </div>
+
       {selectedDocumentId && (
         <div className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-500"></div>
       )}
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-0 h-full w-1/3 bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
-          <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+        <div className="fixed left-0 top-0 h-full w-1/3 bg-gray-900 shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
+          <div className="bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-thin text-gray-900">
+              <h2 className="text-lg font-thin text-white">
                 Gazette {selectedNodeInfo.node.data.title}
               </h2>
-              <p className="text-sm text-gray-500 font-light">
+              <p className="text-sm text-gray-400 font-light">
                 ({selectedNodeInfo.connections.length}) Relationships found
               </p>
             </div>
@@ -1049,7 +1005,7 @@ const Home = () => {
                       <div
                         key={index}
                         className={`rounded-lg p-3 bg-gray-800
-                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-900" : "" }`}
+                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-700" : "" }`}
                         onClick={() =>
                           handleGazetteClick(connection.document_number)
                         }
@@ -1091,8 +1047,8 @@ const Home = () => {
 
             {selectedNodeInfo.connections.length === 0 && (
               <div className="text-center py-8">
-                <CircleAlert className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">
+                <CircleAlert className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">
                   No connections found for this document
                 </p>
               </div>
