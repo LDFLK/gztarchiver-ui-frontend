@@ -108,6 +108,7 @@ const SearchResults = ({
             {results.map((item, index) => (
               <div
                 key={item.id || index}
+                data-document-id={item.document_id}
                 className="bg-gray-900/10 rounded-2xl p-4 sm:p-6 hover:bg-gray-800/60 transition-all duration-300 group"
               >
                 <div className="flex items-start gap-3 sm:gap-4">
