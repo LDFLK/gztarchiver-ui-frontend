@@ -805,7 +805,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     <>
       <div
         className={`fixed ${
-          isFullscreen ? "inset-0" : "right-0 top-0 h-full w-full sm:w-2/3"
+          isFullscreen ? "inset-0" : "right-0 top-16 h-[calc(100vh-4rem)] w-full sm:w-2/3"
         } bg-white shadow-2xl z-50 animate-slideIn flex flex-col`}
         ref={containerRef}
       >
