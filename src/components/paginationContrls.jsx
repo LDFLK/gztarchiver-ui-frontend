@@ -44,17 +44,17 @@ const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
       <button
         onClick={() => onPageChange(1)}
         disabled={currentPage === 1}
-        className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-1.5 sm:p-2  text-cyan-300 hover:text-cyan-500 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
       >
-        <ChevronsLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+        <ChevronsLeft className="w-3 h-3 sm:w-5 sm:h-5" />
       </button>
 
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={!pagination.has_prev}
-        className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-1.5 sm:p-2 rounded-lg text-cyan-300 hover:text-cyan-500 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
       >
-        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+        <ChevronLeft className="w-3 h-3 sm:w-5 sm:h-5" />
       </button>
 
       <div className="flex items-center gap-0.5 sm:gap-1">
@@ -63,12 +63,12 @@ const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
             key={index}
             onClick={() => page !== "..." && onPageChange(page)}
             disabled={page === "..."}
-            className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
               page === currentPage
-                ? "bg-gray-800 text-white hover:cursor-pointer"
+                ? " text-white hover:cursor-pointer shadow-lg"
                 : page === "..."
                 ? "cursor-default text-gray-400"
-                : "border-none hover:cursor-pointer border-gray-200 hover:bg-gray-50 text-gray-700"
+                : "text-cyan-400 hover:text-white hover:cursor-pointer"
             }`}
           >
             {page}
@@ -79,17 +79,17 @@ const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={!pagination.has_next}
-        className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-1.5 sm:p-2 rounded-lg text-cyan-300 hover:text-cyan-500 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
       >
-        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+        <ChevronRight className="w-3 h-3 sm:w-5 sm:h-5" />
       </button>
 
       <button
         onClick={() => onPageChange(pagination.total_pages)}
         disabled={currentPage === pagination.total_pages}
-        className="p-1.5 sm:p-2 rounded-lg border-none hover:bg-gray-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-1.5 sm:p-2 rounded-lg text-cyan-300 hover:text-cyan-500 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
       >
-        <ChevronsRight className="w-3 h-3 sm:w-4 sm:h-4" />
+        <ChevronsRight className="w-3 h-3 sm:w-5 sm:h-5" />
       </button>
     </div>
   );
