@@ -43,7 +43,8 @@ const Home = () => {
   const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
   const [animatedStats, setAnimatedStats] = useState({
     totalDocs: 0,
-    languages: 0,
+    availableDocs: 0,
+    documentTypes: 0,
     yearsFrom: 0,
     yearsTo: 0
   });
@@ -144,6 +145,25 @@ const Home = () => {
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({ docId: documentId }, "", newUrl);
     setSelectedDocumentId(documentId);
+    
+    // Scroll to and highlight the document after a short delay to allow layout to settle
+    setTimeout(() => {
+      const documentElement = document.querySelector(`[data-document-id="${documentId}"]`);
+      if (documentElement) {
+        documentElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Add highlight effect
+        documentElement.classList.add('ring-2', 'ring-cyan-400', 'ring-opacity-75', 'bg-cyan-500/10');
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          documentElement.classList.remove('ring-2', 'ring-cyan-400', 'ring-opacity-75', 'bg-cyan-500/10');
+        }, 3000);
+      }
+    }, 100);
   };
 
   const handleClosePane = () => {
@@ -463,13 +483,21 @@ const Home = () => {
       }));
     }, 50); // Very fast - every 50ms
     
-    // Languages - rapid increment
-    const languagesInterval = setInterval(() => {
+    // Available Docs - rapid increment
+    const availableDocsInterval = setInterval(() => {
       setAnimatedStats(prev => ({
         ...prev,
-        languages: Math.floor(Math.random() * 20) + 1
+        availableDocs: Math.floor(Math.random() * 99999) + 1000
       }));
     }, 100); // Fast - every 100ms
+    
+    // Document Types - rapid increment
+    const documentTypesInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        documentTypes: Math.floor(Math.random() * 20) + 1
+      }));
+    }, 120); // Medium speed - every 120ms
     
     // Years - rapid increment
     const yearsFromInterval = setInterval(() => {
@@ -486,7 +514,7 @@ const Home = () => {
       }));
     }, 80); // Fast - every 80ms
     
-    intervals.push(totalDocsInterval, languagesInterval, yearsFromInterval, yearsToInterval);
+    intervals.push(totalDocsInterval, availableDocsInterval, documentTypesInterval, yearsFromInterval, yearsToInterval);
     setAnimationIntervals(intervals);
   };
 
@@ -592,14 +620,16 @@ const Home = () => {
       stopRapidCounters();
       
       const totalDocs = parseInt(apiData.total_docs) || 0;
-      const languagesCount = (apiData.available_languages || []).length;
+      const availableDocs = parseInt(apiData.available_docs) || 0;
+      const documentTypesCount = (apiData.document_types || []).length;
       const yearsFrom = parseInt(apiData.years_covered?.from) || 0;
       const yearsTo = parseInt(apiData.years_covered?.to) || 0;
 
       // Set real values
       setAnimatedStats({
         totalDocs: totalDocs,
-        languages: languagesCount,
+        availableDocs: availableDocs,
+        documentTypes: documentTypesCount,
         yearsFrom: yearsFrom,
         yearsTo: yearsTo
       });
@@ -619,7 +649,8 @@ const Home = () => {
       // Reset to 0 first
       setAnimatedStats({
         totalDocs: 0,
-        languages: 0,
+        availableDocs: 0,
+        documentTypes: 0,
         yearsFrom: 0,
         yearsTo: 0
       });
@@ -676,10 +707,10 @@ const Home = () => {
         <div
           className={`min-h-screen flex flex-col transition-all duration-500 ${
           selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
-        }`}
-      >
+        } ${selectedDocumentId ? "w-1/3 max-w-none h-screen overflow-y-auto scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400" : ""}`}
+        >
           {/* Header Section */}
-          <header className="relative z-10 border-b border-gray-800/50">
+           <header className="fixed top-0 left-0 right-0 z-1000 border-b border-gray-800/50 bg-gray-950/95 backdrop-blur-sm transition-all duration-700 ease-out">
             <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
@@ -694,7 +725,7 @@ const Home = () => {
                 </div>
 
                 {/* Stats Overview - Always Visible */}
-                <div className="hidden md:flex items-center space-x-6">
+                <div className="hidden md:flex items-center space-x-4">
                   {/* Total Documents */}
                   <div className="text-center">
                     <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
@@ -703,18 +734,29 @@ const Home = () => {
                         (apiData?.total_docs?.toLocaleString() || "0")
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Total Documents</div>
+                    <div className="text-xs text-gray-400">Document Entries</div>
                   </div>
                   
-                  {/* Languages Count */}
+                  {/* Available Docs Count */}
                   <div className="text-center">
                     <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
                       {isLoading ? 
-                        animatedStats.languages.toString().padStart(2, '0') : 
-                        (languages.length || 0)
+                        animatedStats.availableDocs.toLocaleString().padStart(5, '0') : 
+                        (apiData?.available_docs?.toLocaleString() || "0")
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Languages</div>
+                    <div className="text-xs text-gray-400">Documents Available</div>
+                  </div>
+                  
+                  {/* Document Types Count */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        animatedStats.documentTypes.toString().padStart(2, '0') : 
+                        ((apiData?.document_types || []).length || 0)
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Document Types</div>
                   </div>
                   
                   {/* Years Range */}
@@ -725,7 +767,7 @@ const Home = () => {
                         `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Years</div>
+                    <div className="text-xs text-gray-400">Years Covered</div>
                   </div>
                 </div>
               </div>
@@ -733,10 +775,12 @@ const Home = () => {
           </header>
 
           {/* Main Content */}
-          <main className={`flex-1 relative z-10 transition-all duration-700 ease-out ${
-            currentUrlQuery ? "flex items-start justify-center" : "flex items-center justify-center"
-          }`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+          <main className={`flex-1 relative z-10 transition-all duration-700 ease-out pt-16 ${
+            currentUrlQuery ? "flex items-start justify-start" : "flex items-center justify-center"
+          } ${selectedDocumentId ? "pointer-events-auto" : ""}`}>
+            <div className={`transition-all duration-700 ease-out ${
+              selectedDocumentId ? "w-full" : "w-full max-w-7xl mx-auto"
+            } px-4 sm:px-6 lg:px-8 py-8`}>
               <div
                 className={`transition-all duration-700 ease-out ${
                   currentUrlQuery ? "pt-4" : ""
@@ -985,8 +1029,10 @@ const Home = () => {
           </main>
 
           {/* Footer */}
-          <footer className="relative z-10 border-t border-gray-800/50 mt-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <footer className={`relative z-10 border-t border-gray-800/50 mt-12 ${
+            selectedDocumentId ? "pointer-events-auto" : ""
+          }`}>
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
               <div className="flex items-center justify-between">
                 {/* Copyright */}
                 <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer">
@@ -1029,12 +1075,12 @@ const Home = () => {
       </div>
 
       {selectedDocumentId && (
-        <div className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-500"></div>
+        <div className="fixed top-16 right-0 bottom-0 w-2/3 bg-black/30 z-40 transition-opacity duration-500"></div>
       )}
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-0 h-full w-1/3 bg-gray-900 shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 bg-gray-900 shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
           <div className="bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-thin text-white">
@@ -1143,6 +1189,36 @@ const Home = () => {
 
         .animate-slideInLeft {
           animation: slideInLeft 0.3s ease-out;
+        }
+
+        /* Custom Scrollbar Styling */
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #111827;
+          border-radius: 4px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #06b6d4;
+          border-radius: 4px;
+          transition: background-color 0.2s ease;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #0891b2;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:active {
+          background: #0e7490;
+        }
+
+        /* Firefox scrollbar styling */
+        .scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: #06b6d4 #111827;
         }
       `}</style>
     </>
