@@ -14,6 +14,7 @@ const SearchResults = ({
   onTraceClick,
   handleLimitChange,
   setShowLimitDropdown,
+  isShrunked = false,
 }) => {
   const limitOptions = [10, 20, 50, 100];
 
@@ -43,13 +44,13 @@ const SearchResults = ({
     return (
       <>
         <div className="w-full max-w-6xl mx-auto">
-          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className={`${isShrunked ? 'mb-2' : 'mb-4 sm:mb-6'} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
+              <h2 className={`font-bold text-white mb-2 ${isShrunked ? 'text-sm' : 'text-xl sm:text-2xl'}`}>
                 Search Results for "{query}"
               </h2>
               {pagination.total_count > 0 && (
-                <p className="text-xs sm:text-sm text-gray-400 font-light">
+                <p className={`text-gray-400 font-light ${isShrunked ? 'text-xs' : 'text-xs sm:text-sm'}`}>
                   <span className="font-medium text-cyan-400">
                     {pagination.total_count.toLocaleString()}
                   </span>{" "}
@@ -60,15 +61,15 @@ const SearchResults = ({
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center ${isShrunked ? 'gap-1' : 'gap-3'}`}>
               <div className="relative limit-dropdown-container">
                 <button
                   onClick={() => setShowLimitDropdown(!showLimitDropdown)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-300 border border-gray-600 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 transition-colors duration-200 hover:cursor-pointer"
+                  className={`flex items-center gap-1 ${isShrunked ? 'px-2 py-1 text-[0.65rem]' : 'px-3 py-1.5 text-xs'} text-gray-300 border border-gray-600 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 transition-colors duration-200 hover:cursor-pointer`}
                 >
                   <span>{limit} per page</span>
                   <ChevronDown
-                    className={`w-3 h-3 transition-transform duration-200 ${
+                    className={`transition-transform duration-200 ${isShrunked ? 'w-2.5 h-2.5' : 'w-3 h-3'} ${
                       showLimitDropdown ? "rotate-180" : ""
                     }`}
                   />
@@ -97,14 +98,14 @@ const SearchResults = ({
               </div>
               <button
                 onClick={onBack}
-                className="text-sm me-1 text-cyan-500 hover:text-cyan-300 transition-colors hover:cursor-pointer"
+                className={`${isShrunked ? 'text-xs' : 'text-sm'} me-1 text-cyan-500 hover:text-cyan-300 transition-colors hover:cursor-pointer`}
               >
                 ← Back to Home
               </button>
             </div>
           </div>
 
-          <div className="space-y-3 sm:space-y-4">
+          <div className={`space-y-3 sm:space-y-4 ${isShrunked ? 'mt-5' : 'mt-0'}`}>
             {results.map((item, index) => (
               <div
                 key={item.id || index}
@@ -112,8 +113,8 @@ const SearchResults = ({
                 className="bg-gray-900/10 rounded-2xl p-4 sm:p-6 hover:bg-gray-800/60 transition-all duration-300 group"
               >
                 <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-400 to-gray-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base sm:text-lg font-medium text-white mb-2 break-words">
