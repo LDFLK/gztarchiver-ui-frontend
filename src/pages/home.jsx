@@ -803,12 +803,12 @@ const Home = () => {
                 )}
 
                 {/* Search Section */}
-                <div className="max-w-4xl mx-auto mb-8">
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-8`}>
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl"></div>
-                    <div className="relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-2">
+                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-2'}`}>
                       <div className="flex items-center">
-                        <Search className="w-5 h-5 text-gray-400 ml-4" />
+                        <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-4'}`} />
                   <input
                     type="text"
                     placeholder="Search documents, IDs, types, date or source..."
@@ -816,30 +816,30 @@ const Home = () => {
                           onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
-                          className="flex-1 bg-transparent text-white placeholder-gray-400 px-4 py-4 focus:outline-none"
+                          className={`flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-4 py-4'}`}
                         />
-                        <div className="flex items-center space-x-2 mr-2">
+                        <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-2 mr-2'}`}>
                           {searchInput && (
                       <button
                         onClick={clearSearch}
-                              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                              className={`${selectedDocumentId ? 'p-1' : 'p-2'} text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors`}
                       >
-                              <X className="w-4 h-4" />
+                              <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-4 h-4'}`} />
                       </button>
                     )}
                     <button
                       onClick={toggleQuickSearch}
-                            className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
+                            className={`${selectedDocumentId ? 'p-1' : 'p-2'} rounded-lg transition-colors hover:cursor-pointer ${
                         showQuickSearch
                                 ? "text-cyan-400 bg-cyan-400/10"
                                 : "text-gray-400 hover:text-cyan-300"
                       }`}
                     >
-                            <FileSearch className="w-4 h-4" />
+                            <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     </button>
                   <button
                     onClick={() => handleSearch(1)}
-                            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer"
+                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-6 py-2'} bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer`}
                   >
                     Search
                   </button>
@@ -856,32 +856,36 @@ const Home = () => {
                         : "max-h-0 opacity-0 overflow-hidden"
                     }`}
                   >
-                    <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+                    <div className={`bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-6'}`}>
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">Quick Search</h3>
+                        <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-lg'} font-semibold text-white`}>Quick Search</h3>
                       <button
                         onClick={() => setShowQuickSearch(false)}
                           className="text-gray-400 hover:text-white"
                       >
-                          <X className="w-5 h-5" />
+                          <X className={`${selectedDocumentId ? 'w-4 h-4' : 'w-5 h-5'}`} />
                       </button>
                     </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                      <div className={`grid grid-cols-2 sm:grid-cols-3 ${selectedDocumentId ? 'gap-2 mb-3' : 'gap-3 mb-6'}`}>
                         {quickSearchOptions.map((option) => {
                         const IconComponent = option.icon;
                         return (
                           <button
                             key={option.id}
                             onClick={() => handleQuickSearch(option)}
-                              className={`flex items-center space-x-3 p-3 rounded-lg border transition-all ${
+                              className={`flex items-center space-x-2 rounded-lg border transition-all ${
+                                selectedDocumentId 
+                                  ? 'p-2' 
+                                  : 'space-x-3 p-3'
+                              } ${
                               activeFilters.some((f) => f.id === option.id)
                                   ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
                                   : "bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:border-gray-500"
                               }`}
                             >
-                              <IconComponent className="w-4 h-4" />
-                              <span className="text-sm font-medium">{option.label}</span>
+                              <IconComponent className={`${selectedDocumentId ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                              <span className={`${selectedDocumentId ? 'text-xs' : 'text-sm'} font-medium`}>{option.label}</span>
                           </button>
                         );
                       })}
@@ -1010,6 +1014,7 @@ const Home = () => {
                     onTraceClick={handleTraceClick}
                     handleLimitChange={handleLimitChange}
                     setShowLimitDropdown={setShowLimitDropdown}
+                    isShrunked={!!selectedDocumentId}
                   />
                 )}
               </div>
@@ -1080,14 +1085,18 @@ const Home = () => {
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 bg-gray-900 shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
-          <div className="bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-thin text-white">
-                Gazette {selectedNodeInfo.node.data.title}
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 bg-gray-950 shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r border-gray-800 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
+          {/* Header with Icon and Title */}
+          <div className="pt-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {selectedNodeInfo.node.data.title}
               </h2>
               <p className="text-sm text-gray-400 font-light">
-                ({selectedNodeInfo.connections.length}) Relationships found
+                {selectedNodeInfo.connections.length} Relationship{selectedNodeInfo.connections.length !== 1 ? 's' : ''} found
               </p>
             </div>
           </div>
@@ -1105,34 +1114,43 @@ const Home = () => {
                     .map((connection, index) => (
                       <div
                         key={index}
-                        className={`rounded-lg p-3 bg-gray-800
-                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-700" : "" }`}
+                        className={`p-4 border-b border-gray-700 
+                          transform transition-all duration-300 ${
+                            connection.relatedEntityId !== "gov_01" 
+                              ? "hover:cursor-pointer hover:scale-[1.02] hover:bg-gradient-to-br hover:from-gray-700/50 hover:to-gray-800/50 hover:border-cyan-500/50 hover:shadow-lg" 
+                              : "" 
+                          }`}
                         onClick={() =>
                           handleGazetteClick(connection.document_number)
                         }
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="text-sm font-light text-white">
-                            {connection.relatedEntityId !== "gov_01"
-                              ? "Gazette "
-                              : ""}
-                            {connection.document_number}
-                          </p>
-                          {connection.relatedEntityId !== "gov_01" ? <SquareArrowOutUpRight className="text-white w-4 h-4" /> : ""}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-cyan-400" />
+                            <p className="text-sm font-medium text-white">
+                              {connection.relatedEntityId !== "gov_01"
+                                ? "Gazette "
+                                : ""}
+                              {connection.document_number}
+                            </p>
+                          </div>
+                          {connection.relatedEntityId !== "gov_01" && (
+                            <SquareArrowOutUpRight className="text-cyan-400 w-4 h-4 hover:scale-110 transition-transform" />
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-ligh text-white`}>
+                          <span className="text-xs font-medium text-gray-400">
                             Relationship:
                           </span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-xl ${
+                            className={`text-xs px-3 py-1 rounded-full font-semibold ${
                               connection.name === "AS_DOCUMENT"
-                                ? "bg-cyan-200 text-cyan-800"
+                                ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
                                 : connection.name === "AMENDS"
-                                ? "bg-teal-200 text-teal-800"
+                                ? "bg-teal-500/10 text-teal-400 border border-teal-500/30"
                                 : connection.name === "REFERS_TO"
-                                ? "bg-indigo-200 text-indigo-900"
-                                : "text-black"
+                                ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
+                                : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
                             }`}
                           >
                             {getReadableRelationshipName(
@@ -1147,10 +1165,15 @@ const Home = () => {
             )}
 
             {selectedNodeInfo.connections.length === 0 && (
-              <div className="text-center py-8">
-                <CircleAlert className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CircleAlert className="w-8 h-8 text-gray-500" />
+                </div>
+                <p className="text-sm text-gray-400 font-medium">
                   No connections found for this document
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  This document has no relationships with others
                 </p>
               </div>
             )}
