@@ -10,6 +10,7 @@ import {
   CircleAlert,
   ScanEye,
   Info,
+  Building2,
 } from "lucide-react";
 import {
   Select,
@@ -81,9 +82,16 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
   };
 
   const getRelationshipStyle = (relationshipType) => {
-    return (
-      relationshipConfig[relationshipType] || relationshipConfig["DEFAULT"]
-    );
+    // Default configuration for unknown relationship types
+    const defaultConfig = {
+      allias: relationshipType || "Unknown",
+      color: "#8B5CF6", // Purple as default
+      textColor: "#6D28D9",
+      bgColor: "bg-purple-50",
+      angle: 45, // Default angle
+      angleRange: [15, 75], // Default range
+    };
+    return relationshipConfig[relationshipType] || defaultConfig;
   };
 
   // --- Utility Functions ---
@@ -395,82 +403,127 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       return;
     }
 
-    const baseRadius = 350; // Increased for better spread
+    const baseRadius = 400; // Increased radius for better circular spread with round nodes
 
-    // Group documents by relationship type
-    const groupedByType = connectedDocs.reduce((acc, doc) => {
-      const type = doc.name || "DEFAULT";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(doc);
-      return acc;
-    }, {});
+    // Process all connections first, then update state atomically
+    setNodes((prevNodes) => {
+      // Group documents by relationship type
+      const groupedByType = connectedDocs.reduce((acc, doc) => {
+        const type = doc.name || "DEFAULT";
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(doc);
+        return acc;
+      }, {});
 
-    const newNodes = [];
-    const newEdges = [];
+      const newNodes = [];
+      const newEdges = [];
+      // Track node IDs we've already added in this expansion to prevent duplicates
+      const addedNodeIds = new Set();
 
-    // Position nodes based on their relationship type
-    Object.entries(groupedByType).forEach(([relType, docs]) => {
-      const relStyle = getRelationshipStyle(relType);
-      const baseAngle = relStyle.angle * (Math.PI / 180); // Convert to radians
-      const [minAngle, maxAngle] = relStyle.angleRange.map(
-        (a) => a * (Math.PI / 180)
-      );
+      // Get current node position (might have been updated)
+      const currentNode = prevNodes.find((n) => n.id === nodeId) || clickedNode;
 
-      docs.forEach((doc, index) => {
-        const newNodeId = doc.relatedEntityId;
-        const displayTitle = doc.document_number || newNodeId;
-        const existingNode = nodes.find((n) => n.id === newNodeId);
+      // Position nodes based on their relationship type
+      Object.entries(groupedByType).forEach(([relType, docs]) => {
+        const relStyle = getRelationshipStyle(relType);
+        const baseAngle = relStyle.angle * (Math.PI / 180); // Convert to radians
+        const [minAngle, maxAngle] = relStyle.angleRange.map(
+          (a) => a * (Math.PI / 180)
+        );
 
-        // Calculate angle within the range for this relationship type
-        let angle;
-        if (docs.length === 1) {
-          angle = baseAngle;
-        } else {
-          // Distribute nodes evenly within the angle range
-          const angleSpan = maxAngle - minAngle;
-          angle = minAngle + (angleSpan * index) / (docs.length - 1);
-        }
+        docs.forEach((doc, index) => {
+          const newNodeId = doc.relatedEntityId;
+          const displayTitle = doc.document_number || newNodeId;
+          
+          // Check if node exists in previous state OR if we've already added it in this batch
+          const existingNode = prevNodes.find((n) => n.id === newNodeId);
+          const alreadyAdded = addedNodeIds.has(newNodeId);
 
-        // Add variation to radius for more natural spread (±15%)
-        const radiusVariation = baseRadius * (0.85 + Math.random() * 0.3);
+          // Calculate angle within the range for this relationship type
+          let angle;
+          if (docs.length === 1) {
+            angle = baseAngle;
+          } else {
+            // Distribute nodes evenly within the angle range
+            const angleSpan = maxAngle - minAngle;
+            angle = minAngle + (angleSpan * index) / (docs.length - 1);
+          }
 
-        if (!existingNode) {
-          const newNode = {
-            id: newNodeId,
-            x: clickedNode.x + radiusVariation * Math.cos(angle),
-            y: clickedNode.y + radiusVariation * Math.sin(angle),
-            data: { id: newNodeId, title: displayTitle },
-          };
-          newNodes.push(newNode);
-        }
+          // Add variation to radius for better spread around circular nodes
+          // Use deterministic variation based on index to ensure consistent positioning
+          const variation = (index % 3) * 20 - 20; // Spread between -20, 0, +20
+          const radiusVariation = baseRadius + variation;
 
-        newEdges.push({
-          from: nodeId,
-          to: newNodeId,
-          relationshipType: relType,
-          direction: doc.direction,
+          // Create new node if it doesn't exist AND we haven't added it in this batch
+          if (!existingNode && !alreadyAdded) {
+            const newNode = {
+              id: newNodeId,
+              x: currentNode.x + radiusVariation * Math.cos(angle),
+              y: currentNode.y + radiusVariation * Math.sin(angle),
+              data: { id: newNodeId, title: displayTitle },
+            };
+            newNodes.push(newNode);
+            addedNodeIds.add(newNodeId); // Track that we've added this node
+          }
+
+          // Always create edge for every connection
+          newEdges.push({
+            from: nodeId,
+            to: newNodeId,
+            relationshipType: relType,
+            direction: doc.direction,
+          });
         });
       });
+
+      // Update edges state using functional update to ensure we have latest state
+      setEdges((prevEdges) => {
+        // Filter out duplicate edges - check from, to, AND relationshipType
+        // This allows multiple edges between the same nodes with different relationship types
+        const edgesToAdd = newEdges.filter(
+          (e) => !prevEdges.some(
+            (p) => p.from === e.from && 
+                   p.to === e.to && 
+                   p.relationshipType === e.relationshipType
+          )
+        );
+        
+        // Debug logging
+        console.log(`[TracePane] Expanding node ${nodeId}:`, {
+          totalConnections: connectedDocs.length,
+          relationshipTypes: Object.keys(groupedByType),
+          newEdgesCreated: newEdges.length,
+          edgesToAdd: edgesToAdd.length,
+          existingEdges: prevEdges.length,
+          newNodes: newNodes.length,
+          uniqueNodeIds: addedNodeIds.size,
+        });
+        
+        if (edgesToAdd.length < newEdges.length) {
+          console.warn(`[TracePane] Some edges were filtered out:`, {
+            filtered: newEdges.length - edgesToAdd.length,
+            duplicates: newEdges.filter((e) =>
+              prevEdges.some(
+                (p) => p.from === e.from && 
+                       p.to === e.to && 
+                       p.relationshipType === e.relationshipType
+              )
+            ),
+          });
+        }
+        
+        return [
+          ...prevEdges,
+          ...edgesToAdd.map((e) => ({ ...e, isNew: true })),
+        ];
+      });
+
+      // Return updated nodes
+      return [
+        ...prevNodes,
+        ...newNodes.map((n) => ({ ...n, isNew: true })),
+      ];
     });
-
-    // Merge unique nodes and edges with animation-ready state
-    const nodesToAdd = newNodes.filter(
-      (n) => !nodes.some((p) => p.id === n.id)
-    );
-
-    setNodes((prev) => [
-      ...prev,
-      ...nodesToAdd.map((n) => ({ ...n, isNew: true })),
-    ]);
-
-    const edgesToAdd = newEdges.filter(
-      (e) => !edges.some((p) => p.from === e.from && p.to === e.to)
-    );
-
-    setEdges((prev) => [
-      ...prev,
-      ...edgesToAdd.map((e) => ({ ...e, isNew: true })),
-    ]);
 
     // 7. Remove isNew flag and stop loading after animation delay
     setTimeout(() => {
@@ -703,10 +756,11 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
 
   // --- Render ---
 
-  // Define node dimensions for line calculation
-  const NODE_WIDTH = 160;
-  const NODE_HEIGHT = 80;
-  const NODE_VISUAL_RADIUS = Math.min(NODE_WIDTH, NODE_HEIGHT) / 2; // ~40
+  // Define node dimensions for line calculation - circular nodes
+  const NODE_RADIUS = 45; // Radius for circular nodes (reduced size)
+  const NODE_DIAMETER = NODE_RADIUS * 2; // 90px diameter
+  const NODE_VISUAL_RADIUS = NODE_RADIUS; // For edge connection calculations
+  const ARROW_OFFSET = 20; // Extra distance from node edge for arrow positioning
 
   const NodeComponent = ({
     node,
@@ -716,7 +770,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     onMouseUp,
   }) => {
     const isGovNode = node.data.id === "gov_01";
-    const displayTitle = isGovNode ? "Sri Lanka Gov" : node.data.title;
+    const displayTitle = isGovNode ? "Sri Lanka" : node.data.title;
     const isActiveInIsolation = isIsolationMode && isSelected;
 
     return (
@@ -726,9 +780,10 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
           node.isNew ? "animate-nodeAppear" : ""
         }`}
         style={{
-          left: node.x - NODE_WIDTH / 2, // Center the node div
-          top: node.y - NODE_HEIGHT / 2, // Center the node div
-          width: NODE_WIDTH,
+          left: node.x - NODE_RADIUS, // Center the circular node
+          top: node.y - NODE_RADIUS, // Center the circular node
+          width: NODE_DIAMETER,
+          height: NODE_DIAMETER,
         }}
         onMouseDown={(e) => onDragStart(e, node.id, node.x, node.y)}
         // NEW: Attach onMouseUp to the node component for reliable click detection
@@ -736,7 +791,8 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       >
         <div
           className={`
-          bg-gray-900 rounded-xl border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
+          bg-gray-900 rounded-full border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
+          flex flex-col items-center justify-center
           ${isGovNode ? "p-4" : "p-3"}
           ${
             node.isRoot
@@ -749,14 +805,14 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
           ${isSelected ? "ring-4 ring-cyan-400 shadow-2xl scale-[1.05]" : ""}
           ${draggedNodeId === node.id ? "z-10 shadow-2xl scale-[1.05]" : ""}
         `}
+          style={{
+            width: NODE_DIAMETER,
+            height: NODE_DIAMETER,
+          }}
         >
-          <div
-            className={`flex items-center ${
-              isGovNode ? "justify-center" : "items-start"
-            } gap-2`}
-          >
-            <FileText
-              className={`w-5 h-5 flex-shrink-0 ${
+          {isGovNode ? (
+            <Building2
+              className={`w-4 h-4 flex-shrink-0 mb-1 ${
                 node.isRoot
                   ? "text-cyan-400"
                   : isSelected
@@ -764,24 +820,33 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                   : "text-cyan-400"
               }`}
             />
-            <div className={`flex-1 ${isGovNode ? "text-center" : "min-w-0"}`}>
-              <div
-                className={`font-medium text-sm ${
-                  isGovNode ? "" : "truncate"
-                } ${isSelected ? "text-cyan-200" : "text-white"}`}
-              >
-                {displayTitle}
-              </div>
-              {!isGovNode && (
-                <div
-                  className={`text-xs truncate ${
-                    isSelected ? "text-cyan-300" : "text-gray-400"
-                  }`}
-                >
-                  Gazette: {node.data.id.substring(0, 12)}...
-                </div>
-              )}
+          ) : (
+            <FileText
+              className={`w-4 h-4 flex-shrink-0 mb-1 ${
+                node.isRoot
+                  ? "text-cyan-400"
+                  : isSelected
+                  ? "text-cyan-300"
+                  : "text-cyan-400"
+              }`}
+            />
+          )}
+          
+          <div className={`flex flex-col items-center justify-center ${isGovNode ? "text-center" : ""}`}>
+            <div
+              className={`font-medium text-xs text-center ${
+                isSelected ? "text-cyan-200" : "text-white"
+              }`}
+              style={{
+                maxWidth: NODE_DIAMETER - 20, // Account for padding
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayTitle}
             </div>
+            
           </div>
         </div>
       </div>
@@ -879,12 +944,100 @@ return (
                 onMouseUp={handleMouseUp}
               >
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                  <defs>
+                    {/* Arrow marker definitions for different relationship types */}
+                    {Array.from(new Set(visibleEdges.map(e => e.relationshipType || "DEFAULT"))).map((relType) => {
+                      const relStyle = getRelationshipStyle(relType);
+                      const markerId = `arrow-${relType}`;
+                      const markerIdReverse = `arrow-reverse-${relType}`;
+                      return (
+                        <React.Fragment key={relType}>
+                          {/* Forward arrow (for OUTGOING direction) - smaller and clearer */}
+                          <marker
+                            id={markerId}
+                            markerWidth="8"
+                            markerHeight="8"
+                            refX="7"
+                            refY="2.5"
+                            orient="auto"
+                            markerUnits="strokeWidth"
+                          >
+                            <path
+                              d="M0,0 L0,5 L7,2.5 z"
+                              fill={relStyle.color}
+                              stroke={relStyle.color}
+                              strokeWidth="0.5"
+                              opacity="0.95"
+                            />
+                          </marker>
+                          {/* Reverse arrow (for INCOMING direction) - smaller and clearer */}
+                          <marker
+                            id={markerIdReverse}
+                            markerWidth="8"
+                            markerHeight="8"
+                            refX="1"
+                            refY="2.5"
+                            orient="auto"
+                            markerUnits="strokeWidth"
+                          >
+                            <path
+                              d="M7,0 L7,5 L0,2.5 z"
+                              fill={relStyle.color}
+                              stroke={relStyle.color}
+                              strokeWidth="0.5"
+                              opacity="0.95"
+                            />
+                          </marker>
+                        </React.Fragment>
+                      );
+                    })}
+                  </defs>
                   <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
                     {/* MODIFIED: Use visibleEdges */}
                     {visibleEdges.map((edge, i) => {
-                      const fromNode = nodes.find((n) => n.id === edge.from);
-                      const toNode = nodes.find((n) => n.id === edge.to);
-                      if (!fromNode || !toNode) return null;
+                      // Try to find nodes in both nodes array and visibleNodes array
+                      let fromNode = nodes.find((n) => n.id === edge.from);
+                      let toNode = nodes.find((n) => n.id === edge.to);
+                      
+                      // Fallback to visibleNodes if not found (shouldn't happen, but just in case)
+                      if (!fromNode) {
+                        fromNode = visibleNodes.find((n) => n.id === edge.from);
+                      }
+                      if (!toNode) {
+                        toNode = visibleNodes.find((n) => n.id === edge.to);
+                      }
+                      
+                      if (!fromNode || !toNode) {
+                        console.warn(`[TracePane] Edge rendering: Node not found`, {
+                          edgeFrom: edge.from,
+                          edgeTo: edge.to,
+                          foundFrom: !!fromNode,
+                          foundTo: !!toNode,
+                          totalNodes: nodes.length,
+                          visibleNodesCount: visibleNodes.length,
+                        });
+                        return null;
+                      }
+
+                      // Check if node coordinates are valid
+                      if (
+                        typeof fromNode.x !== 'number' || 
+                        typeof fromNode.y !== 'number' ||
+                        typeof toNode.x !== 'number' || 
+                        typeof toNode.y !== 'number' ||
+                        isNaN(fromNode.x) || 
+                        isNaN(fromNode.y) ||
+                        isNaN(toNode.x) || 
+                        isNaN(toNode.y)
+                      ) {
+                        console.warn(`[TracePane] Edge rendering: Invalid node coordinates`, {
+                          edgeFrom: edge.from,
+                          edgeTo: edge.to,
+                          fromNodeCoords: { x: fromNode.x, y: fromNode.y },
+                          toNodeCoords: { x: toNode.x, y: toNode.y },
+                        });
+                        return null;
+                      }
 
                       const relStyle = getRelationshipStyle(
                         edge.relationshipType || "DEFAULT"
@@ -897,15 +1050,44 @@ return (
 
                       if (length === 0) return null;
 
-                      // Calculate start and end points (short of the node centers)
+                      // Find all edges between the same nodes to calculate offset
+                      const edgesBetweenSameNodes = visibleEdges.filter(
+                        (e) => e.from === edge.from && e.to === edge.to
+                      );
+                      // Find the index of this edge in the filtered array
+                      const edgeIndex = edgesBetweenSameNodes.findIndex((e) => e === edge);
+                      const totalEdgesBetween = edgesBetweenSameNodes.length;
+                      
+                      // Calculate perpendicular offset for multiple edges
+                      // Spread them evenly around the center line
+                      const offsetDistance = totalEdgesBetween > 1 
+                        ? (edgeIndex - (totalEdgesBetween - 1) / 2) * 8 // 8px spacing between parallel edges
+                        : 0;
+                      
+                      // Perpendicular vector (90 degrees rotated)
+                      const perpX = -dy / length;
+                      const perpY = dx / length;
+
+                      // Determine arrow direction based on edge direction
+                      const isOutgoing = edge.direction === "OUTGOING";
+                      
+                      // Calculate start and end points with offset
+                      // Non-arrow end connects to node edge, arrow end has offset for visibility
+                      const startRadius = isOutgoing 
+                        ? NODE_VISUAL_RADIUS  // OUTGOING: start connects to node (no arrow)
+                        : NODE_VISUAL_RADIUS + ARROW_OFFSET; // INCOMING: start has arrow offset
+                      const endRadius = isOutgoing 
+                        ? NODE_VISUAL_RADIUS + ARROW_OFFSET  // OUTGOING: end has arrow offset
+                        : NODE_VISUAL_RADIUS; // INCOMING: end connects to node (no arrow)
+                      
                       const startX =
-                        fromNode.x + (dx / length) * NODE_VISUAL_RADIUS;
+                        fromNode.x + (dx / length) * startRadius + perpX * offsetDistance;
                       const startY =
-                        fromNode.y + (dy / length) * NODE_VISUAL_RADIUS;
+                        fromNode.y + (dy / length) * startRadius + perpY * offsetDistance;
                       const endX =
-                        toNode.x - (dx / length) * NODE_VISUAL_RADIUS;
+                        toNode.x - (dx / length) * endRadius + perpX * offsetDistance;
                       const endY =
-                        toNode.y - (dy / length) * NODE_VISUAL_RADIUS;
+                        toNode.y - (dy / length) * endRadius + perpY * offsetDistance;
 
                       // Calculate midpoint for label
                       const midX = (startX + endX) / 2;
@@ -923,14 +1105,25 @@ return (
                       const labelWidth = labelText.length * 7 + 16; // Approximate width
                       const labelHeight = 18;
 
+                      // Create unique key and gradient ID using relationshipType
+                      const uniqueKey = `${edge.from}-${edge.to}-${edge.relationshipType}-${i}`;
+                      const gradientId = `gradient-${edge.from}-${edge.to}-${edge.relationshipType}-${i}`;
+                      
+                      // Set up arrow markers based on direction (isOutgoing already calculated above)
+                      const relType = edge.relationshipType || "DEFAULT";
+                      const forwardMarkerId = `arrow-${relType}`;
+                      const reverseMarkerId = `arrow-reverse-${relType}`;
+                      const arrowMarkerEnd = isOutgoing ? `url(#${forwardMarkerId})` : undefined;
+                      const arrowMarkerStart = !isOutgoing ? `url(#${reverseMarkerId})` : undefined;
+
                       return (
                         <g
-                          key={i}
+                          key={uniqueKey}
                           className={edge.isNew ? "animate-edgeFadeIn" : ""}
                         >
                           {/* Connection Line with gradient */}
                           <defs>
-                            <linearGradient id={`gradient-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
                               <stop offset="0%" style={{stopColor: relStyle.color, stopOpacity: 0.8}} />
                               <stop offset="50%" style={{stopColor: relStyle.color, stopOpacity: 1}} />
                               <stop offset="100%" style={{stopColor: relStyle.color, stopOpacity: 0.8}} />
@@ -941,40 +1134,14 @@ return (
                             y1={startY}
                             x2={endX}
                             y2={endY}
-                            stroke={`url(#gradient-${i})`}
+                            stroke={`url(#${gradientId})`}
                             strokeWidth="3"
                             strokeLinecap="round"
+                            markerEnd={arrowMarkerEnd}
+                            markerStart={arrowMarkerStart}
                           />
 
-                          {/* Start dot with glow */}
-                          <circle
-                            cx={startX}
-                            cy={startY}
-                            r="6"
-                            fill={relStyle.color}
-                            opacity="0.3"
-                          />
-                          <circle
-                            cx={startX}
-                            cy={startY}
-                            r="4"
-                            fill={relStyle.color}
-                          />
-
-                          {/* End dot with glow */}
-                          <circle
-                            cx={endX}
-                            cy={endY}
-                            r="6"
-                            fill={relStyle.color}
-                            opacity="0.3"
-                          />
-                          <circle
-                            cx={endX}
-                            cy={endY}
-                            r="4"
-                            fill={relStyle.color}
-                          />
+                          {/* Dots removed - arrows now clearly show direction */}
 
                           {/* Relationship Label - rotated to align with line */}
                           <g
