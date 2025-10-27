@@ -88,56 +88,6 @@ const Home = () => {
   const [activeFilters, setActiveFilters] = useState([]);
   const [showLimitDropdown, setShowLimitDropdown] = useState(false);
 
-  const quickSearchOptions = [
-    {
-      id: "2015",
-      label: "2015",
-      icon: Calendar,
-      query: "date:2015",
-      color: "bg-blue-50 text-blue-700 border-blue-200",
-      pattern: /date:2015\b(?!-\d)/i,
-    },
-    {
-      id: "2016",
-      label: "2016",
-      icon: Calendar,
-      query: "date:2016",
-      color: "bg-purple-50 text-purple-700 border-purple-200",
-      pattern: /date:2016\b(?!-\d)/i,
-    },
-    {
-      id: "people",
-      label: "People",
-      icon: Users,
-      query: "type:people",
-      color: "bg-green-50 text-green-700 border-green-200",
-      pattern: /type:people/i,
-    },
-    {
-      id: "organisational",
-      label: "Organisational",
-      icon: Building,
-      query: "type:organisational",
-      color: "bg-orange-50 text-orange-700 border-orange-200",
-      pattern: /type:organisational/i,
-    },
-    {
-      id: "available",
-      label: "Available Only",
-      icon: MessageCircle,
-      query: "available:yes",
-      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      pattern: /available:yes/i,
-    },
-    {
-      id: "gov-source",
-      label: "Gov Source",
-      icon: Hash,
-      query: "source:gov.lk",
-      color: "bg-red-50 text-red-700 border-red-200",
-      pattern: /source:gov\.lk/i,
-    },
-  ];
 
   const handleTraceClick = (documentId) => {
     const params = new URLSearchParams(window.location.search);
@@ -209,18 +159,6 @@ const Home = () => {
 
     const filters = [];
     const trimmedQuery = query.trim();
-
-    // Check for predefined quick search patterns
-    quickSearchOptions.forEach((option) => {
-      if (option.pattern && option.pattern.test(trimmedQuery)) {
-        filters.push({
-          id: option.id,
-          label: option.label,
-          color: option.color,
-          query: option.query,
-        });
-      }
-    });
 
     // Parse other patterns that might not be in quick search
     const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2}){0,2})/gi);
@@ -386,12 +324,6 @@ const Home = () => {
     }
   };
 
-  const handleQuickSearch = (option) => {
-    setCurrentPage(1);
-    setSearchInput(option.query);
-    updateUrlQuery(option.query);
-    setShowQuickSearch(false);
-  };
 
   const handlePageChange = (newPage) => {
     if (
@@ -714,12 +646,12 @@ const Home = () => {
             <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   {/* <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
                     <FileArchive className="w-6 h-6 text-white" />
                   </div> */}
                   <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
                     {/* <p className="text-xs text-gray-400">Sri Lankan Government Documents Archive</p> */}
                   </div>
                 </div>
@@ -788,14 +720,20 @@ const Home = () => {
               >
                 {/* Hero Section */}
                 {!currentUrlQuery && (
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+                  <div 
+                    className={`text-center mb-8 sm:mb-12 px-2 transition-all duration-500 ease-in-out ${
+                      showQuickSearch 
+                        ? 'scale-90' 
+                        : 'scale-100 translate-y-0 opacity-100'
+                    }`}
+                  >
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
                       Government
                       <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
                     </h2>
-                    <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+                    <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
                       Advanced search and analysis platform for government documents, 
                       enabling transparency and data-driven insights.
                     </p>
@@ -803,45 +741,46 @@ const Home = () => {
                 )}
 
                 {/* Search Section */}
-                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-8`}>
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2`}>
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl blur-xl"></div>
-                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-2'}`}>
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
+                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
                       <div className="flex items-center">
-                        <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-4'}`} />
+                        <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-2 sm:ml-4'}`} />
                   <input
                     type="text"
-                    placeholder="Search documents, IDs, types, date or source..."
+                    placeholder="Search documents..."
                           value={searchInput}
                           onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
-                          className={`flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-4 py-4'}`}
+                          className={`flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
                         />
-                        <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-2 mr-2'}`}>
+                        <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-1 sm:space-x-2 mr-1 sm:mr-2'}`}>
                           {searchInput && (
                       <button
                         onClick={clearSearch}
-                              className={`${selectedDocumentId ? 'p-1' : 'p-2'} text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors`}
+                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors`}
                       >
-                              <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                              <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                       </button>
                     )}
                     <button
                       onClick={toggleQuickSearch}
-                            className={`${selectedDocumentId ? 'p-1' : 'p-2'} rounded-lg transition-colors hover:cursor-pointer ${
+                            className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} rounded-lg transition-colors hover:cursor-pointer ${
                         showQuickSearch
                                 ? "text-cyan-400 bg-cyan-400/10"
                                 : "text-gray-400 hover:text-cyan-300"
                       }`}
                     >
-                            <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                            <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                     </button>
                   <button
                     onClick={() => handleSearch(1)}
-                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-6 py-2'} bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer`}
+                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
                   >
-                    Search
+                    <span className="hidden sm:inline">Search</span>
+                    <span className="sm:hidden">Go</span>
                   </button>
                         </div>
                       </div>
@@ -849,75 +788,107 @@ const Home = () => {
                 </div>
 
                   {/* Quick Search Panel */}
-                <div
-                    className={`mt-4 transition-all duration-300 ${
-                    showQuickSearch
-                        ? "max-h-96 opacity-100"
-                        : "max-h-0 opacity-0 overflow-hidden"
-                    }`}
-                  >
-                    <div className={`bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-6'}`}>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-lg'} font-semibold text-white`}>Quick Search</h3>
-                      <button
-                        onClick={() => setShowQuickSearch(false)}
-                          className="text-gray-400 hover:text-white"
-                      >
-                          <X className={`${selectedDocumentId ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                      </button>
-                    </div>
-
-                      <div className={`grid grid-cols-2 sm:grid-cols-3 ${selectedDocumentId ? 'gap-2 mb-3' : 'gap-3 mb-6'}`}>
-                        {quickSearchOptions.map((option) => {
-                        const IconComponent = option.icon;
-                        return (
-                          <button
-                            key={option.id}
-                            onClick={() => handleQuickSearch(option)}
-                              className={`flex items-center space-x-2 rounded-lg border transition-all ${
-                                selectedDocumentId 
-                                  ? 'p-2' 
-                                  : 'space-x-3 p-3'
-                              } ${
-                              activeFilters.some((f) => f.id === option.id)
-                                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
-                                  : "bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:border-gray-500"
-                              }`}
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-2`}>
+                  <div
+                      className={`mt-3 sm:mt-4 transition-all duration-300 ${
+                      showQuickSearch
+                          ? "max-h-96 opacity-100"
+                          : "max-h-0 opacity-0 overflow-hidden"
+                      }`}
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
+                        <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
+                          <div className="flex items-center justify-between mb-3 sm:mb-4">
+                            <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-base sm:text-lg'} font-semibold text-white`}>Quick Search</h3>
+                            <button
+                              onClick={() => setShowQuickSearch(false)}
+                              className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors cursor-pointer p-1"
                             >
-                              <IconComponent className={`${selectedDocumentId ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                              <span className={`${selectedDocumentId ? 'text-xs' : 'text-sm'} font-medium`}>{option.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                              <X className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'}`} />
+                            </button>
+                          </div>
 
-                      <div className="border-t border-gray-700 pt-4">
-                        <p className="text-sm text-gray-400 mb-3">Search Examples:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
-                            <span
-                              key={example}
-                              className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
-                            >
-                              {example}
-                        </span>
-                          ))}
+                          {/* Document Types */}
+                          <div className="mb-3 sm:mb-4">
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 font-medium">Document Types:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {loading ? (
+                                <>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                </>
+                              ) : types.length > 0 ? (
+                                types.map((type, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleTypes(type)}
+                                    className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                  >
+                                    {type}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="text-gray-500 text-xs sm:text-sm">No document types available</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Search Criteria */}
+                          <div className="border-t border-gray-700 pt-3 pb-3 sm:pt-4">
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 font-medium">Search Criteria:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {["id:", "type:", "date:", "available:", "source:"].map((criteria, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleCriteria(criteria)}
+                                  className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-mono hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                >
+                                  {criteria}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="border-t border-gray-700 pt-3 sm:pt-4">
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">Search Examples:</p>
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                              {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
+                                <span
+                                  key={example}
+                                  className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
+                                >
+                                  {example}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
                   {/* Active Filters */}
                 {activeFilters.length > 0 && (
-                    <div className="mt-4">
+                    <div className="mt-3 sm:mt-4 px-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-400">Active filters:</span>
-                      <div className="flex flex-wrap gap-2">
+                          <span className="text-xs sm:text-sm text-gray-400">Active filters:</span>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {activeFilters.map((filter) => (
                           <div
                             key={filter.id}
-                                className="flex items-center space-x-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400"
+                                className="flex items-center space-x-1.5 sm:space-x-2 px-2 py-1 sm:px-3 sm:py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400"
                           >
                                 <span className="text-xs font-medium">{filter.label}</span>
                             <button
@@ -933,62 +904,6 @@ const Home = () => {
                   </div>
               </div>
                   )}
-
-                  {/* Tags and Criteria - Directly under search bar */}
-                  {/* <div className="mt-2">
-                    <div className="mb-4">
-                      <div className="flex flex-wrap gap-2">
-                        {loading ? (
-                          <>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4"></div>
-                              </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                                    </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                                    </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                              </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                            </div>
-                            <div className="px-3 py-1.5 bg-gray-500/30 rounded-lg animate-pulse">
-                              <div className="w-16 h-4 "></div>
-                    </div>
-                          </>
-                        ) : types.length > 0 ? (
-                          types.map((type, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleTypes(type)}
-                              className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-sm font-medium hover:bg-green-500/10 hover:border-green-500/50 hover:text-green-400 transition-all duration-200"
-                            >
-                              {type}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="text-gray-500 text-sm">No document types available</div>
-                                  )}
-                                </div>
-                              </div>
-
-                    <div>
-                      <div className="flex flex-wrap gap-2">
-                        {["id:", "type:", "date:", "available:", "source:"].map((criteria, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleCriteria(criteria)}
-                            className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-sm font-mono hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-blue-400 transition-all duration-200"
-                          >
-                            {criteria}
-                          </button>
-                        ))}
-                            </div>
-                    </div>
-                  </div> */}
               </div>
 
 
