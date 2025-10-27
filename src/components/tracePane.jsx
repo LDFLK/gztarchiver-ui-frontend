@@ -1318,29 +1318,7 @@ return (
               </div>
             )}
           </div>
-        </div>
-
-       
-
-        {isMobile && (
-          <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[60] flex items-center justify-center text-center px-6">
-            <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
-              <Info className="text-cyan-400 mb-4 w-8 h-8" />
-              <p className="text-white text-base font-medium mb-2">
-                Desktop Recommended
-              </p>
-              <p className="text-gray-400 text-sm mb-6">
-                Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported yet.
-              </p>
-              <button
-                onClick={onClose}
-                className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
-              >
-                Close
-              </button> 
-            </div>
-          </div>
-        )}
+        </div>        
       </div>
 
       {showTooltip && (
