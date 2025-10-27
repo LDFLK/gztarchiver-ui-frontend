@@ -871,7 +871,11 @@ return (
       <div
         className={
           "fixed " +
-          (isFullscreen ? "top-16 left-0 right-0 bottom-0" : "right-0 top-16 h-[calc(100vh-4rem)] w-full sm:w-2/3") +
+          (isMobile 
+            ? "top-0 left-0 right-0 bottom-0 w-full h-full" 
+            : isFullscreen 
+              ? "top-16 left-0 right-0 bottom-0" 
+              : "right-0 top-16 h-[calc(100vh-4rem)] w-full sm:w-2/3") +
           " bg-gray-950 shadow-2xl z-50 animate-slideIn flex flex-col border border-gray-800"
         }
         ref={containerRef}
@@ -1319,18 +1323,20 @@ return (
        
 
         {isMobile && (
-          <div className="absolute inset-0 bg-white/30 z-50 flex items-center justify-center text-center px-6 backdrop-blur-xs">
-            <div className="bg-transparent shadow-[0_0_15px_rgba(0,0,0,0.2)] px-6 py-6 rounded-lg flex flex-col items-center justify-center text-center">
-              <Info className="text-gray-800 mb-3 w-6 h-6" />
-              <p className="text-gray-800 text-md font-medium">
-                Please use a Desktop to explore connections. <br />
-                Mobile and Tablet devices are not supported yet.
+          <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[60] flex items-center justify-center text-center px-6">
+            <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+              <Info className="text-cyan-400 mb-4 w-8 h-8" />
+              <p className="text-white text-base font-medium mb-2">
+                Desktop Recommended
+              </p>
+              <p className="text-gray-400 text-sm mb-6">
+                Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported yet.
               </p>
               <button
-                onClick={() => window.history.back()}
-                className="mt-4 bg-transparent text-gray-800 rounded-lg hover:bg-gray-700 transition-all"
+                onClick={onClose}
+                className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
               >
-                ← 
+                Close
               </button> 
             </div>
           </div>

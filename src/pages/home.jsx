@@ -24,6 +24,7 @@ import {
   Linkedin,
   Github,
   ChevronUp,
+  Info,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
@@ -71,6 +72,8 @@ const Home = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileMessage, setShowMobileMessage] = useState(false);
 
   const updateUrlQuery = useCallback(
     (newQuery) => {
@@ -90,6 +93,15 @@ const Home = () => {
 
 
   const handleTraceClick = (documentId) => {
+    // Always check mobile status dynamically
+    const checkMobile = window.innerWidth < 1024;
+    
+    // If mobile, show message instead of loading tracePane
+    if (checkMobile) {
+      setShowMobileMessage(true);
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     params.set("docId", documentId);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
@@ -360,8 +372,11 @@ const Home = () => {
     setActiveFilters([]);
   };
 
-  const toggleQuickSearch = () => {
-    setShowQuickSearch(!showQuickSearch);
+  const toggleQuickSearch = (e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setShowQuickSearch(prev => !prev);
     setShowLimitDropdown(false);
   };
 
@@ -623,6 +638,17 @@ const Home = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [currentUrlQuery]);
 
+  // Detect mobile/tablet
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    handleResize(); // Run on mount
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <>
       {/* Modern Tech Archive Background */}
@@ -728,7 +754,7 @@ const Home = () => {
                     }`}
                   >
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
-                      Government
+                      Sri Lankan Government
                       <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
@@ -741,7 +767,7 @@ const Home = () => {
                 )}
 
                 {/* Search Section */}
-                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2`}>
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2 quick-search-container`}>
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
                     <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
@@ -779,8 +805,7 @@ const Home = () => {
                     onClick={() => handleSearch(1)}
                             className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
                   >
-                    <span className="hidden sm:inline">Search</span>
-                    <span className="sm:hidden">Go</span>
+                    <span>Search</span>
                   </button>
                         </div>
                       </div>
@@ -788,14 +813,9 @@ const Home = () => {
                 </div>
 
                   {/* Quick Search Panel */}
-                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-2`}>
-                  <div
-                      className={`mt-3 sm:mt-4 transition-all duration-300 ${
-                      showQuickSearch
-                          ? "max-h-96 opacity-100"
-                          : "max-h-0 opacity-0 overflow-hidden"
-                      }`}
-                    >
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-2 quick-search-container`}>
+                  {showQuickSearch && (
+                    <div className="mt-3 sm:mt-4 mb-6 sm:mb-8 transition-all duration-300 opacity-100">
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
                         <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
@@ -876,11 +896,12 @@ const Home = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+                </div>
 
                   {/* Active Filters */}
                 {activeFilters.length > 0 && (
-                    <div className="mt-3 sm:mt-4 px-2">
+                    <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mt-3 sm:mt-4 px-2 mb-4 sm:mb-6`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <span className="text-xs sm:text-sm text-gray-400">Active filters:</span>
@@ -1097,11 +1118,55 @@ const Home = () => {
       )}
 
       {selectedDocumentId && (
-        <TracePane
-          documentId={selectedDocumentId}
-          onClose={handleClosePane}
-          onNodeSelect={handleNodeSelect}
-        />
+        <>
+          <TracePane
+            documentId={selectedDocumentId}
+            onClose={handleClosePane}
+            onNodeSelect={handleNodeSelect}
+          />
+          
+          {/* Mobile Message Overlay - Shows when mobile and tracePane is active */}
+          {isMobile && (
+            <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+              <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+                <Info className="text-cyan-400 mb-4 w-8 h-8" />
+                <p className="text-white text-base font-medium mb-2">
+                  Desktop Recommended
+                </p>
+                <p className="text-gray-400 text-sm mb-6">
+                  Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
+                </p>
+                <button
+                  onClick={handleClosePane}
+                  className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
+                >
+                  Close
+                </button> 
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Mobile Message Overlay - Shows when clicking Explore on mobile without tracePane */}
+      {showMobileMessage && !selectedDocumentId && (
+        <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+          <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+            <Info className="text-cyan-400 mb-4 w-8 h-8" />
+            <p className="text-white text-base font-medium mb-2">
+              Desktop Recommended
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
+            </p>
+            <button
+              onClick={() => setShowMobileMessage(false)}
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
+            >
+              Close
+            </button> 
+          </div>
+        </div>
       )}
 
       {/* Scroll to Top Button - Only show when on search results page */}
