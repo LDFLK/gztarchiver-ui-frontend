@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDashboardStats } from "../hooks/useDashboardQuery";
 import SearchResults from "../components/searchResults";
@@ -20,10 +20,14 @@ import {
   Building,
   CircleAlert,
   SquareArrowOutUpRight,
+  MessageSquare,
+  Linkedin,
+  Github,
+  ChevronUp,
+  Info,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
-import SocialMediaSidebar from "../components/socialMediaSideBar";
 import ErrorCard from "../components/errorCard";
 
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
@@ -38,6 +42,15 @@ const Home = () => {
   const [searchCriteria, setSearchCriteria] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
+  const [animatedStats, setAnimatedStats] = useState({
+    totalDocs: 0,
+    availableDocs: 0,
+    documentTypes: 0,
+    yearsFrom: 0,
+    yearsTo: 0
+  });
+  const [animationIntervals, setAnimationIntervals] = useState([]);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const currentUrlQuery = urlParams.get("search") || "";
@@ -59,6 +72,8 @@ const Home = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileMessage, setShowMobileMessage] = useState(false);
 
   const updateUrlQuery = useCallback(
     (newQuery) => {
@@ -76,63 +91,41 @@ const Home = () => {
   const [activeFilters, setActiveFilters] = useState([]);
   const [showLimitDropdown, setShowLimitDropdown] = useState(false);
 
-  const quickSearchOptions = [
-    {
-      id: "2015",
-      label: "2015",
-      icon: Calendar,
-      query: "date:2015",
-      color: "bg-blue-50 text-blue-700 border-blue-200",
-      pattern: /date:2015\b(?!-\d)/i,
-    },
-    {
-      id: "2016",
-      label: "2016",
-      icon: Calendar,
-      query: "date:2016",
-      color: "bg-purple-50 text-purple-700 border-purple-200",
-      pattern: /date:2016\b(?!-\d)/i,
-    },
-    {
-      id: "people",
-      label: "People",
-      icon: Users,
-      query: "type:people",
-      color: "bg-green-50 text-green-700 border-green-200",
-      pattern: /type:people/i,
-    },
-    {
-      id: "organisational",
-      label: "Organisational",
-      icon: Building,
-      query: "type:organisational",
-      color: "bg-orange-50 text-orange-700 border-orange-200",
-      pattern: /type:organisational/i,
-    },
-    {
-      id: "available",
-      label: "Available Only",
-      icon: MessageCircle,
-      query: "available:yes",
-      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      pattern: /available:yes/i,
-    },
-    {
-      id: "gov-source",
-      label: "Gov Source",
-      icon: Hash,
-      query: "source:gov.lk",
-      color: "bg-red-50 text-red-700 border-red-200",
-      pattern: /source:gov\.lk/i,
-    },
-  ];
 
   const handleTraceClick = (documentId) => {
+    // Always check mobile status dynamically
+    const checkMobile = window.innerWidth < 1024;
+    
+    // If mobile, show message instead of loading tracePane
+    if (checkMobile) {
+      setShowMobileMessage(true);
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     params.set("docId", documentId);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({ docId: documentId }, "", newUrl);
     setSelectedDocumentId(documentId);
+    
+    // Scroll to and highlight the document after a short delay to allow layout to settle
+    setTimeout(() => {
+      const documentElement = document.querySelector(`[data-document-id="${documentId}"]`);
+      if (documentElement) {
+        documentElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Add highlight effect
+        documentElement.classList.add('ring-2', 'ring-cyan-400', 'ring-opacity-75', 'bg-cyan-500/10');
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          documentElement.classList.remove('ring-2', 'ring-cyan-400', 'ring-opacity-75', 'bg-cyan-500/10');
+        }, 3000);
+      }
+    }, 100);
   };
 
   const handleClosePane = () => {
@@ -178,18 +171,6 @@ const Home = () => {
 
     const filters = [];
     const trimmedQuery = query.trim();
-
-    // Check for predefined quick search patterns
-    quickSearchOptions.forEach((option) => {
-      if (option.pattern && option.pattern.test(trimmedQuery)) {
-        filters.push({
-          id: option.id,
-          label: option.label,
-          color: option.color,
-          query: option.query,
-        });
-      }
-    });
 
     // Parse other patterns that might not be in quick search
     const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2}){0,2})/gi);
@@ -355,12 +336,6 @@ const Home = () => {
     }
   };
 
-  const handleQuickSearch = (option) => {
-    setCurrentPage(1);
-    setSearchInput(option.query);
-    updateUrlQuery(option.query);
-    setShowQuickSearch(false);
-  };
 
   const handlePageChange = (newPage) => {
     if (
@@ -397,8 +372,11 @@ const Home = () => {
     setActiveFilters([]);
   };
 
-  const toggleQuickSearch = () => {
-    setShowQuickSearch(!showQuickSearch);
+  const toggleQuickSearch = (e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setShowQuickSearch(prev => !prev);
     setShowLimitDropdown(false);
   };
 
@@ -435,6 +413,70 @@ const Home = () => {
 
     // Open the new URL in a new window/tab
     window.open(newUrl, "_blank");
+  };
+
+  // Rapid continuous counter function
+  const startRapidCounters = () => {
+    // Clear any existing intervals
+    animationIntervals.forEach(interval => clearInterval(interval));
+    
+    const intervals = [];
+    
+    // Total Documents - rapid increment
+    const totalDocsInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        totalDocs: Math.floor(Math.random() * 99999) + 1000
+      }));
+    }, 50); // Very fast - every 50ms
+    
+    // Available Docs - rapid increment
+    const availableDocsInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        availableDocs: Math.floor(Math.random() * 99999) + 1000
+      }));
+    }, 100); // Fast - every 100ms
+    
+    // Document Types - rapid increment
+    const documentTypesInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        documentTypes: Math.floor(Math.random() * 20) + 1
+      }));
+    }, 120); // Medium speed - every 120ms
+    
+    // Years - rapid increment
+    const yearsFromInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        yearsFrom: Math.floor(Math.random() * 50) + 1970
+      }));
+    }, 80); // Fast - every 80ms
+    
+    const yearsToInterval = setInterval(() => {
+      setAnimatedStats(prev => ({
+        ...prev,
+        yearsTo: Math.floor(Math.random() * 30) + 2020
+      }));
+    }, 80); // Fast - every 80ms
+    
+    intervals.push(totalDocsInterval, availableDocsInterval, documentTypesInterval, yearsFromInterval, yearsToInterval);
+    setAnimationIntervals(intervals);
+  };
+
+  // Stop rapid counters
+  const stopRapidCounters = () => {
+    animationIntervals.forEach(interval => clearInterval(interval));
+    setAnimationIntervals([]);
+  };
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   // Remove individual filter
@@ -477,7 +519,7 @@ const Home = () => {
     data: apiData,
     isLoading,
     error: queryError,
-  } = useDashboardStats(!currentUrlQuery);
+  } = useDashboardStats(true); // Always fetch dashboard data
   // Process the data when it arrives
   useEffect(() => {
     if (apiData) {
@@ -520,6 +562,24 @@ const Home = () => {
       setLanguages(apiData.available_languages || []);
       setTypes(apiData.document_types || []);
       setSearchCriteria(["id:", "type:", "date:", "available:", "source:"]);
+
+      // Stop rapid counters and set real values when data loads
+      stopRapidCounters();
+      
+      const totalDocs = parseInt(apiData.total_docs) || 0;
+      const availableDocs = parseInt(apiData.available_docs) || 0;
+      const documentTypesCount = (apiData.document_types || []).length;
+      const yearsFrom = parseInt(apiData.years_covered?.from) || 0;
+      const yearsTo = parseInt(apiData.years_covered?.to) || 0;
+
+      // Set real values
+      setAnimatedStats({
+        totalDocs: totalDocs,
+        availableDocs: availableDocs,
+        documentTypes: documentTypesCount,
+        yearsFrom: yearsFrom,
+        yearsTo: yearsTo
+      });
     }
   }, [apiData]);
 
@@ -529,6 +589,25 @@ const Home = () => {
       setLoading(isLoading);
     }
   }, [isLoading, currentUrlQuery]);
+
+  // Start rapid counters when loading starts (always when data is loading)
+  useEffect(() => {
+    if (isLoading) {
+      // Reset to 0 first
+      setAnimatedStats({
+        totalDocs: 0,
+        availableDocs: 0,
+        documentTypes: 0,
+        yearsFrom: 0,
+        yearsTo: 0
+      });
+      // Start rapid counting
+      startRapidCounters();
+    } else if (!isLoading) {
+      // Stop rapid counters when not loading
+      stopRapidCounters();
+    }
+  }, [isLoading]);
 
   // Sync error state
   useEffect(() => {
@@ -540,192 +619,302 @@ const Home = () => {
     }
   }, [queryError]);
 
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      stopRapidCounters();
+    };
+  }, []);
+
+  // Scroll listener for scroll to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      // Show button when scrolled down more than 300px and there are search results
+      setShowScrollTop(scrollTop > 300 && currentUrlQuery);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentUrlQuery]);
+
+  // Detect mobile/tablet
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    handleResize(); // Run on mount
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <>
-      <SocialMediaSidebar />
+      {/* Modern Tech Archive Background */}
+      <div className="min-h-screen bg-gray-950 relative overflow-hidden">
+        {/* Tech Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+        
+        {/* Animated Tech Lines */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" style={{animationDelay: '1s'}}></div> */}
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-pulse" style={{animationDelay: '1s'}}></div>
+        </div>
 
-      <div
-        className={`min-h-screen p-3 sm:p-6 lg:p-8 flex flex-col transition-all duration-500 ${
-          selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
-        }`}
-      >
         <div
-          className={`flex-1 flex justify-center transition-all duration-700 ease-out ${
-            currentUrlQuery ? "items-start pt-4 sm:pt-8" : "items-center"
-          }`}
+          className={`min-h-screen flex flex-col transition-all duration-500 ${
+          selectedDocumentId ? "pointer-events-none" : "pointer-events-auto"
+        } ${selectedDocumentId ? "w-1/3 max-w-none h-screen overflow-y-auto scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400" : ""}`}
         >
-          <div className="w-full">
-            <div
-              className={`bg-white/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 transition-all duration-700 ${
-                currentUrlQuery ? "bg-white/90" : ""
-              }`}
-            >
-              <div
-                className={`text-center transition-all duration-500 ${
-                  currentUrlQuery ? "mb-6 sm:mb-8" : "mb-8 sm:mb-12"
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl sm:rounded-2xl flex items-center justify-center">
-                    <FileArchive className="text-white w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
+          {/* Header Section */}
+           <header className="fixed top-0 left-0 right-0 z-1000 border-b border-gray-800/50 bg-gray-950/95 backdrop-blur-sm transition-all duration-700 ease-out">
+            <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                {/* Logo */}
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  {/* <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
+                    <FileArchive className="w-6 h-6 text-white" />
+                  </div> */}
+                  <div>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
+                    {/* <p className="text-xs text-gray-400">Sri Lankan Government Documents Archive</p> */}
                   </div>
-                  <h1
-                    className={`font-thin text-gray-600 flex items-center transition-all duration-500 ${
-                      currentUrlQuery
-                        ? "text-2xl sm:text-3xl"
-                        : "text-3xl sm:text-4xl"
-                    }`}
-                  >
-                    Archives
-                  </h1>
+                </div>
+
+                {/* Stats Overview - Always Visible */}
+                <div className="hidden md:flex items-center space-x-4">
+                  {/* Total Documents */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
+                        (apiData?.total_docs?.toLocaleString() || "0")
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Document Entries</div>
+                  </div>
+                  
+                  {/* Available Docs Count */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        animatedStats.availableDocs.toLocaleString().padStart(5, '0') : 
+                        (apiData?.available_docs?.toLocaleString() || "0")
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Documents Available</div>
+                  </div>
+                  
+                  {/* Document Types Count */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        animatedStats.documentTypes.toString().padStart(2, '0') : 
+                        ((apiData?.document_types || []).length || 0)
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Document Types</div>
+                  </div>
+                  
+                  {/* Years Range */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
+                      {isLoading ? 
+                        `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
+                        `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
+                      }
+                    </div>
+                    <div className="text-xs text-gray-400">Years Covered</div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </header>
 
-              <div className="flex flex-col items-center mb-6 sm:mb-8">
-                <div className="relative w-full max-w-4xl search-input-container">
+          {/* Main Content */}
+          <main className={`flex-1 relative z-10 transition-all duration-700 ease-out pt-16 ${
+            currentUrlQuery ? "flex items-start justify-start" : "flex items-center justify-center"
+          } ${selectedDocumentId ? "pointer-events-auto" : ""}`}>
+            <div className={`transition-all duration-700 ease-out ${
+              selectedDocumentId ? "w-full" : "w-full max-w-7xl mx-auto"
+            } px-4 sm:px-6 lg:px-8 py-8`}>
+              <div
+                className={`transition-all duration-700 ease-out ${
+                  currentUrlQuery ? "pt-4" : ""
+                }`}
+              >
+                {/* Hero Section */}
+                {!currentUrlQuery && (
+                  <div 
+                    className={`text-center mb-8 sm:mb-12 px-2 transition-all duration-500 ease-in-out ${
+                      showQuickSearch 
+                        ? 'scale-90' 
+                        : 'scale-100 translate-y-0 opacity-100'
+                    }`}
+                  >
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
+                      Sri Lankan Government
+                      <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
+                        Document Archive
+                      </span>
+                    </h2>
+                    <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
+                      Advanced search and analysis platform for government documents, 
+                      enabling transparency and data-driven insights.
+                    </p>
+                  </div>
+                )}
+
+                {/* Search Section */}
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2 quick-search-container`}>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
+                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
+                      <div className="flex items-center">
+                        <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-2 sm:ml-4'}`} />
                   <input
                     type="text"
-                    placeholder="Search documents, IDs, types, date or source..."
-                    value={searchInput} // Use local state for input
-                    onChange={(e) => setSearchInput(e.target.value)} // Update local state on change
+                    placeholder="Search documents..."
+                          value={searchInput}
+                          onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
-                    className="w-full pl-10 sm:pl-14 pr-32 sm:pr-40 py-3 sm:py-4 text-base sm:text-md border border-gray-100 rounded-xl sm:rounded-2xl
-                  focus:outline-none focus:ring-0 focus:ring-black
-                  focus:shadow-lg transition-shadow duration-200
-                  bg-white/80 backdrop-blur-sm placeholder-gray-400 placeholder:font-thin font-thin"
-                  />
-                  <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
-
-                  <div className="absolute right-20 sm:right-26 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                    {searchInput && ( // Check local state for clear button
+                          className={`flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
+                        />
+                        <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-1 sm:space-x-2 mr-1 sm:mr-2'}`}>
+                          {searchInput && (
                       <button
                         onClick={clearSearch}
-                        className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200"
+                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors`}
                       >
-                        <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                              <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                       </button>
                     )}
                     <button
                       onClick={toggleQuickSearch}
-                      className={`p-1 rounded-md transition-all duration-200 hover:cursor-pointer ${
+                            className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} rounded-lg transition-colors hover:cursor-pointer ${
                         showQuickSearch
-                          ? "text-gray-700 bg-gray-100 scale-105"
-                          : "text-gray-400 hover:text-gray-600 hover:scale-105"
+                                ? "text-cyan-400 bg-cyan-400/10"
+                                : "text-gray-400 hover:text-cyan-300"
                       }`}
                     >
-                      <FileSearch className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                     </button>
-                  </div>
-
                   <button
                     onClick={() => handleSearch(1)}
-                    className="absolute right-0 top-0 h-full bg-gray-800 hover:bg-gray-900 hover:cursor-pointer text-white px-4 sm:px-6 rounded-r-xl sm:rounded-r-2xl text-xs sm:text-sm font-thin transition-colors duration-200 focus:outline-none"
+                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
                   >
-                    Search
+                    <span>Search</span>
                   </button>
-                </div>
-
-                <div
-                  className={`w-full max-w-4xl overflow-hidden quick-search-container transition-all duration-300 ease-out rounded-xl sm:rounded-2xl shadow-lg ${
-                    showQuickSearch
-                      ? "mt-3 sm:mt-4 max-h-96 opacity-100"
-                      : "mt-0 max-h-0 opacity-0"
-                  }`}
-                >
-                  <div
-                    className={`bg-white/90 backdrop-blur-sm border border-gray-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 transform transition-all duration-300 ease-out ${
-                      showQuickSearch
-                        ? "scale-100 translate-y-0"
-                        : "scale-95 -translate-y-2"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <h3 className="text-sm sm:text-base font-medium text-gray-700">
-                        Quick Search
-                      </h3>
-                      <button
-                        onClick={() => setShowQuickSearch(false)}
-                        className="text-gray-400 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200 hover:scale-110"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                      {quickSearchOptions.map((option, index) => {
-                        const IconComponent = option.icon;
-                        return (
-                          <button
-                            key={option.id}
-                            onClick={() => handleQuickSearch(option)}
-                            className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:cursor-pointer ${
-                              activeFilters.some((f) => f.id === option.id)
-                                ? option.color + " shadow-md"
-                                : "bg-white text-gray-600 border-gray-100 hover:bg-gray-50"
-                            }`}
-                            style={{ animationDelay: `${index * 50}ms` }}
-                          >
-                            <IconComponent className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-xs sm:text-sm font-medium truncate">
-                              {option.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-gray-100">
-                      <p className="text-xs sm:text-sm text-gray-500 mb-2">
-                        Search examples:
-                      </p>
-                      <div className="flex flex-wrap gap-1 sm:gap-2">
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          date:2015
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          date:2015-05
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          type:people
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          type:organisational
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          id:2030-05
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          available:yes
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          available:no
-                        </span>
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                          "exact phrase"
-                        </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
                 </div>
 
-                {/* Active Filter Display - Now shows all active filters */}
+                  {/* Quick Search Panel */}
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-2 quick-search-container`}>
+                  {showQuickSearch && (
+                    <div className="mt-3 sm:mt-4 mb-6 sm:mb-8 transition-all duration-300 opacity-100">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
+                        <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
+                          <div className="flex items-center justify-between mb-3 sm:mb-4">
+                            <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-base sm:text-lg'} font-semibold text-white`}>Quick Search</h3>
+                            <button
+                              onClick={() => setShowQuickSearch(false)}
+                              className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors cursor-pointer p-1"
+                            >
+                              <X className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'}`} />
+                            </button>
+                          </div>
+
+                          {/* Document Types */}
+                          <div className="mb-3 sm:mb-4">
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 font-medium">Document Types:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {loading ? (
+                                <>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                    <div className="w-16 h-4"></div>
+                                  </div>
+                                </>
+                              ) : types.length > 0 ? (
+                                types.map((type, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleTypes(type)}
+                                    className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                  >
+                                    {type}
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="text-gray-500 text-xs sm:text-sm">No document types available</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Search Criteria */}
+                          <div className="border-t border-gray-700 pt-3 pb-3 sm:pt-4">
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 font-medium">Search Criteria:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {["id:", "type:", "date:", "available:", "source:"].map((criteria, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleCriteria(criteria)}
+                                  className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-mono hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                >
+                                  {criteria}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="border-t border-gray-700 pt-3 sm:pt-4">
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">Search Examples:</p>
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                              {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
+                                <span
+                                  key={example}
+                                  className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
+                                >
+                                  {example}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                  {/* Active Filters */}
                 {activeFilters.length > 0 && (
-                  <div className="w-full max-w-4xl mt-3 sm:mt-4">
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs sm:text-sm text-gray-500 mt-1 flex-shrink-0">
-                        Active filters:
-                      </span>
-                      <div className="flex flex-wrap gap-2">
+                    <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mt-3 sm:mt-4 px-2 mb-4 sm:mb-6`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs sm:text-sm text-gray-400">Active filters:</span>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {activeFilters.map((filter) => (
                           <div
                             key={filter.id}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-200 ${filter.color}`}
+                                className="flex items-center space-x-1.5 sm:space-x-2 px-2 py-1 sm:px-3 sm:py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400"
                           >
-                            <span className="font-medium">{filter.label}</span>
+                                <span className="text-xs font-medium">{filter.label}</span>
                             <button
                               onClick={() => removeFilter(filter)}
-                              className="hover:bg-black/10 rounded-full p-0.5 transition-colors duration-150 hover:cursor-pointer"
+                                  className="text-cyan-400 hover:text-white hover:cursor-pointer"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -734,250 +923,19 @@ const Home = () => {
                       </div>
                     </div>
                   </div>
-                )}
+              </div>
+                  )}
               </div>
 
-              
-              <div
-                className={`transition-all duration-700 ease-out${
-                  currentUrlQuery // Check URL query
-                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                    : "opacity-100 scale-100 pointer-events-auto"
-                }`}
-              >
-                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
-                {!currentUrlQuery && (
-                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
-                      {error ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                        </>
-                      ) : loading ? (
-                        <>
-                          <SkeletonCard />
-                          <SkeletonCard />
-                        </>
-                      ) : stats.length === 0 ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                        </>
-                      ) : (
-                        stats
-                          .filter(
-                            (stat) =>
-                              stat.value === "criteria" ||
-                              stat.value === "types"
-                          )
-                          .map((stat, index) => (
-                            <div
-                              key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all duration-200 flex items-stretch"
-                              style={{
-                                transitionDelay: `${index * 100}ms`,
-                              }}
-                            >
-                              {/* Icon on the left */}
-                              <div className="flex-shrink-0 flex items-center justify-center mr-4">
-                                {stat.icon}
-                              </div>
 
-                              {/* Content on the right */}
-                              <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-3">
-                                {stat.value === "types" ? (
-                                  <>
-                                    <p className="text-xs sm:text-sm font-light text-gray-600">
-                                      {stat.title}
-                                    </p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {types.map((type, typeIndex) => (
-                                        <span
-                                          key={typeIndex}
-                                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
-                                          onClick={() => handleTypes(type)}
-                                        >
-                                          {type}
-                                        </span>
-                                      ))}
-                                    </div>
-                                    <p className="text-xs font-thin text-gray-500">
-                                      {stat.description}
-                                    </p>
-                                  </>
-                                ) : stat.value === "criteria" ? (
-                                  <>
-                                    <p className="text-xs sm:text-sm font-light text-gray-600">
-                                      {stat.title}
-                                    </p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {searchCriteria.map(
-                                        (criteria, criteriaIndex) => (
-                                          <span
-                                            key={criteriaIndex}
-                                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin hover:bg-black hover:text-white transition-all duration-200 hover:cursor-pointer hover:scale-110"
-                                            onClick={() => handleCriteria(criteria)}
-                                          >
-                                            {criteria}
-                                          </span>
-                                        )
-                                      )}
-                                    </div>
-                                    <p className="text-xs font-thin text-gray-500">
-                                      {stat.description}
-                                    </p>
-                                  </>
-                                ) : null}
-                              </div>
-                            </div>
-                          ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div
-                className={`transition-all duration-700 ease-out${
-                  currentUrlQuery // Check URL query
-                    ? "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
-                    : "opacity-100 scale-100 pointer-events-auto"
-                }`}
-              >
-                {/* Use currentUrlQuery to determine if we are in search results view or dashboard view */}
-                {!currentUrlQuery && (
-                  <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto mt-5">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full">
-                      {error ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now, This can be an error from db or try refreshing..."
-                            }
-                          />
-                        </>
-                      ) : loading ? (
-                        <>
-                          <SkeletonCard />
-                          <SkeletonCard />
-                          <SkeletonCard />
-                        </>
-                      ) : stats.length === 0 ? (
-                        <>
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                          <ErrorCard
-                            error={
-                              "Looks like there's no data available to show right now..."
-                            }
-                          />
-                        </>
-                      ) : (
-                        stats
-                          .filter(
-                            (stat) =>
-                              !["criteria", "types"].includes(stat.value)
-                          )
-                          .map((stat, index) => (
-                            <div
-                              key={index}
-                              className="bg-white border border-gray-100 rounded-lg p-4 sm:p-6 w-full sm:flex-1 transition-all"
-                              style={{
-                                transitionDelay: `${index * 100}ms`,
-                              }}
-                            >
-                              <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3">
-                                <div className="flex-shrink-0">{stat.icon}</div>
-                                <div className="space-y-1 sm:space-y-2">
-                                  {stat.value === "languages" ? (
-                                    <>
-                                      <p className="text-xs sm:text-sm font-light text-gray-600">
-                                        {stat.title}
-                                      </p>
-
-                                      <div className="flex flex-wrap justify-center gap-1">
-                                        {languages.map(
-                                          (language, langIndex) => (
-                                            <span
-                                              key={langIndex}
-                                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-thin"
-                                            >
-                                              {language}
-                                            </span>
-                                          )
-                                        )}
-                                      </div>
-
-                                      <p className="text-xs font-thin text-gray-500">
-                                        {stat.description}
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <h3 className="text-base sm:text-lg font-thin text-gray-900 leading-tight">
-                                        {stat.value}
-                                      </h3>
-                                      <p className="text-xs sm:text-sm font-light text-gray-600">
-                                        {stat.title}
-                                      </p>
-                                      <p className="text-xs font-thin text-gray-500">
-                                        {stat.description}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
+                {/* Search Results Section */}
               <div
                 className={`transition-all duration-700 ease-out ${
-                  currentUrlQuery // Check URL query
+                    currentUrlQuery
                     ? "opacity-100 scale-100 pointer-events-auto"
                     : "opacity-0 scale-95 pointer-events-none h-0 overflow-hidden"
                 }`}
               >
-                {/* Use currentUrlQuery for the results component */}
                 {currentUrlQuery && (
                   <SearchResults
                     query={currentUrlQuery}
@@ -992,45 +950,89 @@ const Home = () => {
                     onTraceClick={handleTraceClick}
                     handleLimitChange={handleLimitChange}
                     setShowLimitDropdown={setShowLimitDropdown}
+                    isShrunked={!!selectedDocumentId}
                   />
                 )}
               </div>
 
-              {loading &&
-                currentUrlQuery && ( // Check URL query
-                  <div className="flex justify-center items-center py-8 sm:py-12">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
-                      <p className="text-gray-500 font-thin text-sm sm:text-base">
-                        Searching archives...
-                      </p>
+                {/* Loading State */}
+                {loading && currentUrlQuery && (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="w-8 h-8 border-2 border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
+                      {/* <p className="text-gray-400 font-medium">Searching archives...</p> */}
                     </div>
                   </div>
                 )}
+
             </div>
           </div>
-        </div>
+          </main>
 
-        <div className="pt-4 sm:pt-6 border-t border-gray-100">
-          <p className="text-xs text-gray-400 text-center">
-            Open Data @{new Date().getFullYear()}. All rights reserved.
-          </p>
+          {/* Footer */}
+          <footer className={`relative z-10 border-t border-gray-800/50 mt-12 ${
+            selectedDocumentId ? "pointer-events-auto" : ""
+          }`}>
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <div className="flex items-center justify-between">
+                {/* Copyright */}
+                <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer">
+                <p className="text-gray-400 text-sm">
+                    <span className="hover:text-white">Open Data</span> @{new Date().getFullYear()}. // All rights reserved.
+                  </p>
+                </a>
+                
+                {/* Social Media Links */}
+                <div className="flex items-center space-x-4">
+                  <a
+                    href="https://discord.gg/wYKFyVEY"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-white transition-all duration-200 hover:scale-110"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/company/lankadata/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-white transition-all hover:scale-110"
+                  >
+                    <Linkedin className="w-5 h-5" />
+                  </a>
+                  <a
+                    href="https://github.com/LDFLK"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-gray-400 hover:text-white transition-all duration-200 hover:scale-110"
+                  >
+                    <Github className="w-5 h-5" />
+                  </a>
         </div>
       </div>
+            </div>
+          </footer>
+        </div>
+      </div>
+
       {selectedDocumentId && (
-        <div className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-500"></div>
+        <div className="fixed top-16 right-0 bottom-0 w-2/3 bg-black/30 z-40 transition-opacity duration-500"></div>
       )}
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-0 h-full w-1/3 bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft">
-          <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-thin text-gray-900">
-                Gazette {selectedNodeInfo.node.data.title}
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 bg-gray-950 shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r border-gray-800 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
+          {/* Header with Icon and Title */}
+          <div className="pt-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {selectedNodeInfo.node.data.title}
               </h2>
-              <p className="text-sm text-gray-500 font-light">
-                ({selectedNodeInfo.connections.length}) Relationships found
+              <p className="text-sm text-gray-400 font-light">
+                {selectedNodeInfo.connections.length} Relationship{selectedNodeInfo.connections.length !== 1 ? 's' : ''} found
               </p>
             </div>
           </div>
@@ -1048,34 +1050,43 @@ const Home = () => {
                     .map((connection, index) => (
                       <div
                         key={index}
-                        className={`rounded-lg p-3 bg-gray-800
-                          transform transition-all duration-300 ${connection.relatedEntityId != "gov_01" ? "hover:cursor-pointer hover:scale-105 hover:bg-gray-900" : "" }`}
+                        className={`p-4 border-b border-gray-700 
+                          transform transition-all duration-300 ${
+                            connection.relatedEntityId !== "gov_01" 
+                              ? "hover:cursor-pointer hover:scale-[1.02] hover:bg-gradient-to-br hover:from-gray-700/50 hover:to-gray-800/50 hover:border-cyan-500/50 hover:shadow-lg" 
+                              : "" 
+                          }`}
                         onClick={() =>
                           handleGazetteClick(connection.document_number)
                         }
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="text-sm font-light text-white">
-                            {connection.relatedEntityId !== "gov_01"
-                              ? "Gazette "
-                              : ""}
-                            {connection.document_number}
-                          </p>
-                          {connection.relatedEntityId !== "gov_01" ? <SquareArrowOutUpRight className="text-white w-4 h-4" /> : ""}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-cyan-400" />
+                            <p className="text-sm font-medium text-white">
+                              {connection.relatedEntityId !== "gov_01"
+                                ? "Gazette "
+                                : ""}
+                              {connection.document_number}
+                            </p>
+                          </div>
+                          {connection.relatedEntityId !== "gov_01" && (
+                            <SquareArrowOutUpRight className="text-cyan-400 w-4 h-4 hover:scale-110 transition-transform" />
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-ligh text-white`}>
+                          <span className="text-xs font-medium text-gray-400">
                             Relationship:
                           </span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-xl ${
+                            className={`text-xs px-3 py-1 rounded-full font-semibold ${
                               connection.name === "AS_DOCUMENT"
-                                ? "bg-cyan-200 text-cyan-800"
+                                ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
                                 : connection.name === "AMENDS"
-                                ? "bg-teal-200 text-teal-800"
+                                ? "bg-teal-500/10 text-teal-400 border border-teal-500/30"
                                 : connection.name === "REFERS_TO"
-                                ? "bg-indigo-200 text-indigo-900"
-                                : "text-black"
+                                ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
+                                : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
                             }`}
                           >
                             {getReadableRelationshipName(
@@ -1090,10 +1101,15 @@ const Home = () => {
             )}
 
             {selectedNodeInfo.connections.length === 0 && (
-              <div className="text-center py-8">
-                <CircleAlert className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CircleAlert className="w-8 h-8 text-gray-500" />
+                </div>
+                <p className="text-sm text-gray-400 font-medium">
                   No connections found for this document
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  This document has no relationships with others
                 </p>
               </div>
             )}
@@ -1102,11 +1118,66 @@ const Home = () => {
       )}
 
       {selectedDocumentId && (
-        <TracePane
-          documentId={selectedDocumentId}
-          onClose={handleClosePane}
-          onNodeSelect={handleNodeSelect}
-        />
+        <>
+          <TracePane
+            documentId={selectedDocumentId}
+            onClose={handleClosePane}
+            onNodeSelect={handleNodeSelect}
+          />
+          
+          {/* Mobile Message Overlay - Shows when mobile and tracePane is active */}
+          {isMobile && (
+            <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+              <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+                <Info className="text-cyan-400 mb-4 w-8 h-8" />
+                <p className="text-white text-base font-medium mb-2">
+                  Desktop Recommended
+                </p>
+                <p className="text-gray-400 text-sm mb-6">
+                  Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
+                </p>
+                <button
+                  onClick={handleClosePane}
+                  className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
+                >
+                  Close
+                </button> 
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Mobile Message Overlay - Shows when clicking Explore on mobile without tracePane */}
+      {showMobileMessage && !selectedDocumentId && (
+        <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+          <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+            <Info className="text-cyan-400 mb-4 w-8 h-8" />
+            <p className="text-white text-base font-medium mb-2">
+              Desktop Recommended
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
+            </p>
+            <button
+              onClick={() => setShowMobileMessage(false)}
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
+            >
+              Close
+            </button> 
+          </div>
+        </div>
+      )}
+
+      {/* Scroll to Top Button - Only show when on search results page */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full shadow-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-110 flex items-center justify-center group hover:cursor-pointer"
+          title="Go to top"
+        >
+          <ChevronUp className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
+        </button>
       )}
 
       <style jsx>{`
@@ -1121,6 +1192,36 @@ const Home = () => {
 
         .animate-slideInLeft {
           animation: slideInLeft 0.3s ease-out;
+        }
+
+        /* Custom Scrollbar Styling */
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #111827;
+          border-radius: 4px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #06b6d4;
+          border-radius: 4px;
+          transition: background-color 0.2s ease;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #0891b2;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:active {
+          background: #0e7490;
+        }
+
+        /* Firefox scrollbar styling */
+        .scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: #06b6d4 #111827;
         }
       `}</style>
     </>

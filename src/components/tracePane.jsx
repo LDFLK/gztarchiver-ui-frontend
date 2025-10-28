@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   X,
   FileText,
@@ -10,6 +10,7 @@ import {
   CircleAlert,
   ScanEye,
   Info,
+  Building2,
 } from "lucide-react";
 import {
   Select,
@@ -81,9 +82,16 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
   };
 
   const getRelationshipStyle = (relationshipType) => {
-    return (
-      relationshipConfig[relationshipType] || relationshipConfig["DEFAULT"]
-    );
+    // Default configuration for unknown relationship types
+    const defaultConfig = {
+      allias: relationshipType || "Unknown",
+      color: "#8B5CF6", // Purple as default
+      textColor: "#6D28D9",
+      bgColor: "bg-purple-50",
+      angle: 45, // Default angle
+      angleRange: [15, 75], // Default range
+    };
+    return relationshipConfig[relationshipType] || defaultConfig;
   };
 
   // --- Utility Functions ---
@@ -395,82 +403,127 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       return;
     }
 
-    const baseRadius = 350; // Increased for better spread
+    const baseRadius = 400; // Increased radius for better circular spread with round nodes
 
-    // Group documents by relationship type
-    const groupedByType = connectedDocs.reduce((acc, doc) => {
-      const type = doc.name || "DEFAULT";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(doc);
-      return acc;
-    }, {});
+    // Process all connections first, then update state atomically
+    setNodes((prevNodes) => {
+      // Group documents by relationship type
+      const groupedByType = connectedDocs.reduce((acc, doc) => {
+        const type = doc.name || "DEFAULT";
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(doc);
+        return acc;
+      }, {});
 
-    const newNodes = [];
-    const newEdges = [];
+      const newNodes = [];
+      const newEdges = [];
+      // Track node IDs we've already added in this expansion to prevent duplicates
+      const addedNodeIds = new Set();
 
-    // Position nodes based on their relationship type
-    Object.entries(groupedByType).forEach(([relType, docs]) => {
-      const relStyle = getRelationshipStyle(relType);
-      const baseAngle = relStyle.angle * (Math.PI / 180); // Convert to radians
-      const [minAngle, maxAngle] = relStyle.angleRange.map(
-        (a) => a * (Math.PI / 180)
-      );
+      // Get current node position (might have been updated)
+      const currentNode = prevNodes.find((n) => n.id === nodeId) || clickedNode;
 
-      docs.forEach((doc, index) => {
-        const newNodeId = doc.relatedEntityId;
-        const displayTitle = doc.document_number || newNodeId;
-        const existingNode = nodes.find((n) => n.id === newNodeId);
+      // Position nodes based on their relationship type
+      Object.entries(groupedByType).forEach(([relType, docs]) => {
+        const relStyle = getRelationshipStyle(relType);
+        const baseAngle = relStyle.angle * (Math.PI / 180); // Convert to radians
+        const [minAngle, maxAngle] = relStyle.angleRange.map(
+          (a) => a * (Math.PI / 180)
+        );
 
-        // Calculate angle within the range for this relationship type
-        let angle;
-        if (docs.length === 1) {
-          angle = baseAngle;
-        } else {
-          // Distribute nodes evenly within the angle range
-          const angleSpan = maxAngle - minAngle;
-          angle = minAngle + (angleSpan * index) / (docs.length - 1);
-        }
+        docs.forEach((doc, index) => {
+          const newNodeId = doc.relatedEntityId;
+          const displayTitle = doc.document_number || newNodeId;
+          
+          // Check if node exists in previous state OR if we've already added it in this batch
+          const existingNode = prevNodes.find((n) => n.id === newNodeId);
+          const alreadyAdded = addedNodeIds.has(newNodeId);
 
-        // Add variation to radius for more natural spread (±15%)
-        const radiusVariation = baseRadius * (0.85 + Math.random() * 0.3);
+          // Calculate angle within the range for this relationship type
+          let angle;
+          if (docs.length === 1) {
+            angle = baseAngle;
+          } else {
+            // Distribute nodes evenly within the angle range
+            const angleSpan = maxAngle - minAngle;
+            angle = minAngle + (angleSpan * index) / (docs.length - 1);
+          }
 
-        if (!existingNode) {
-          const newNode = {
-            id: newNodeId,
-            x: clickedNode.x + radiusVariation * Math.cos(angle),
-            y: clickedNode.y + radiusVariation * Math.sin(angle),
-            data: { id: newNodeId, title: displayTitle },
-          };
-          newNodes.push(newNode);
-        }
+          // Add variation to radius for better spread around circular nodes
+          // Use deterministic variation based on index to ensure consistent positioning
+          const variation = (index % 3) * 20 - 20; // Spread between -20, 0, +20
+          const radiusVariation = baseRadius + variation;
 
-        newEdges.push({
-          from: nodeId,
-          to: newNodeId,
-          relationshipType: relType,
-          direction: doc.direction,
+          // Create new node if it doesn't exist AND we haven't added it in this batch
+          if (!existingNode && !alreadyAdded) {
+            const newNode = {
+              id: newNodeId,
+              x: currentNode.x + radiusVariation * Math.cos(angle),
+              y: currentNode.y + radiusVariation * Math.sin(angle),
+              data: { id: newNodeId, title: displayTitle },
+            };
+            newNodes.push(newNode);
+            addedNodeIds.add(newNodeId); // Track that we've added this node
+          }
+
+          // Always create edge for every connection
+          newEdges.push({
+            from: nodeId,
+            to: newNodeId,
+            relationshipType: relType,
+            direction: doc.direction,
+          });
         });
       });
+
+      // Update edges state using functional update to ensure we have latest state
+      setEdges((prevEdges) => {
+        // Filter out duplicate edges - check from, to, AND relationshipType
+        // This allows multiple edges between the same nodes with different relationship types
+        const edgesToAdd = newEdges.filter(
+          (e) => !prevEdges.some(
+            (p) => p.from === e.from && 
+                   p.to === e.to && 
+                   p.relationshipType === e.relationshipType
+          )
+        );
+        
+        // Debug logging
+        console.log(`[TracePane] Expanding node ${nodeId}:`, {
+          totalConnections: connectedDocs.length,
+          relationshipTypes: Object.keys(groupedByType),
+          newEdgesCreated: newEdges.length,
+          edgesToAdd: edgesToAdd.length,
+          existingEdges: prevEdges.length,
+          newNodes: newNodes.length,
+          uniqueNodeIds: addedNodeIds.size,
+        });
+        
+        if (edgesToAdd.length < newEdges.length) {
+          console.warn(`[TracePane] Some edges were filtered out:`, {
+            filtered: newEdges.length - edgesToAdd.length,
+            duplicates: newEdges.filter((e) =>
+              prevEdges.some(
+                (p) => p.from === e.from && 
+                       p.to === e.to && 
+                       p.relationshipType === e.relationshipType
+              )
+            ),
+          });
+        }
+        
+        return [
+          ...prevEdges,
+          ...edgesToAdd.map((e) => ({ ...e, isNew: true })),
+        ];
+      });
+
+      // Return updated nodes
+      return [
+        ...prevNodes,
+        ...newNodes.map((n) => ({ ...n, isNew: true })),
+      ];
     });
-
-    // Merge unique nodes and edges with animation-ready state
-    const nodesToAdd = newNodes.filter(
-      (n) => !nodes.some((p) => p.id === n.id)
-    );
-
-    setNodes((prev) => [
-      ...prev,
-      ...nodesToAdd.map((n) => ({ ...n, isNew: true })),
-    ]);
-
-    const edgesToAdd = newEdges.filter(
-      (e) => !edges.some((p) => p.from === e.from && p.to === e.to)
-    );
-
-    setEdges((prev) => [
-      ...prev,
-      ...edgesToAdd.map((e) => ({ ...e, isNew: true })),
-    ]);
 
     // 7. Remove isNew flag and stop loading after animation delay
     setTimeout(() => {
@@ -703,10 +756,11 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
 
   // --- Render ---
 
-  // Define node dimensions for line calculation
-  const NODE_WIDTH = 160;
-  const NODE_HEIGHT = 80;
-  const NODE_VISUAL_RADIUS = Math.min(NODE_WIDTH, NODE_HEIGHT) / 2; // ~40
+  // Define node dimensions for line calculation - circular nodes
+  const NODE_RADIUS = 45; // Radius for circular nodes (reduced size)
+  const NODE_DIAMETER = NODE_RADIUS * 2; // 90px diameter
+  const NODE_VISUAL_RADIUS = NODE_RADIUS; // For edge connection calculations
+  const ARROW_OFFSET = 20; // Extra distance from node edge for arrow positioning
 
   const NodeComponent = ({
     node,
@@ -716,7 +770,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     onMouseUp,
   }) => {
     const isGovNode = node.data.id === "gov_01";
-    const displayTitle = isGovNode ? "Sri Lanka Gov" : node.data.title;
+    const displayTitle = isGovNode ? "Sri Lanka" : node.data.title;
     const isActiveInIsolation = isIsolationMode && isSelected;
 
     return (
@@ -726,9 +780,10 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
           node.isNew ? "animate-nodeAppear" : ""
         }`}
         style={{
-          left: node.x - NODE_WIDTH / 2, // Center the node div
-          top: node.y - NODE_HEIGHT / 2, // Center the node div
-          width: NODE_WIDTH,
+          left: node.x - NODE_RADIUS, // Center the circular node
+          top: node.y - NODE_RADIUS, // Center the circular node
+          width: NODE_DIAMETER,
+          height: NODE_DIAMETER,
         }}
         onMouseDown={(e) => onDragStart(e, node.id, node.x, node.y)}
         // NEW: Attach onMouseUp to the node component for reliable click detection
@@ -736,52 +791,62 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       >
         <div
           className={`
-          bg-white rounded-xl border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
+          bg-gray-900 rounded-full border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
+          flex flex-col items-center justify-center
           ${isGovNode ? "p-4" : "p-3"}
           ${
             node.isRoot
-              ? "border-cyan-500 hover:scale-[1.03]"
+              ? "border-cyan-500 hover:scale-[1.03] bg-gradient-to-br from-gray-800 to-gray-900"
               : isSelected
-              ? "border-cyan-500 bg-cyan-50"
-              : "border-gray-300 hover:scale-[1.03]"
+              ? "border-cyan-500 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10"
+              : "border-gray-600 hover:scale-[1.03] bg-gradient-to-br from-gray-800 to-gray-900"
           }
-          ${isExpanded ? "ring-2 ring-cyan-200 scale-[1.03]" : ""}
+          ${isExpanded ? "ring-2 ring-cyan-400/50 scale-[1.03]" : ""}
           ${isSelected ? "ring-4 ring-cyan-400 shadow-2xl scale-[1.05]" : ""}
           ${draggedNodeId === node.id ? "z-10 shadow-2xl scale-[1.05]" : ""}
         `}
+          style={{
+            width: NODE_DIAMETER,
+            height: NODE_DIAMETER,
+          }}
         >
-          <div
-            className={`flex items-center ${
-              isGovNode ? "justify-center" : "items-start"
-            } gap-2`}
-          >
-            <FileText
-              className={`w-5 h-5 flex-shrink-0 ${
+          {isGovNode ? (
+            <Building2
+              className={`w-4 h-4 flex-shrink-0 mb-1 ${
                 node.isRoot
-                  ? "text-cyan-500"
+                  ? "text-cyan-400"
                   : isSelected
-                  ? "text-cyan-600"
-                  : "text-cyan-500"
+                  ? "text-cyan-300"
+                  : "text-cyan-400"
               }`}
             />
-            <div className={`flex-1 ${isGovNode ? "text-center" : "min-w-0"}`}>
-              <div
-                className={`font-medium text-sm ${
-                  isGovNode ? "" : "truncate"
-                } ${isSelected ? "text-cyan-800" : "text-cyan-700"}`}
-              >
-                {displayTitle}
-              </div>
-              {!isGovNode && (
-                <div
-                  className={`text-xs truncate ${
-                    isSelected ? "text-cyan-600" : "text-gray-500"
-                  }`}
-                >
-                  Gazette: {node.data.id.substring(0, 12)}...
-                </div>
-              )}
+          ) : (
+            <FileText
+              className={`w-4 h-4 flex-shrink-0 mb-1 ${
+                node.isRoot
+                  ? "text-cyan-400"
+                  : isSelected
+                  ? "text-cyan-300"
+                  : "text-cyan-400"
+              }`}
+            />
+          )}
+          
+          <div className={`flex flex-col items-center justify-center ${isGovNode ? "text-center" : ""}`}>
+            <div
+              className={`font-medium text-xs text-center ${
+                isSelected ? "text-cyan-200" : "text-white"
+              }`}
+              style={{
+                maxWidth: NODE_DIAMETER - 20, // Account for padding
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayTitle}
             </div>
+            
           </div>
         </div>
       </div>
@@ -801,27 +866,31 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return (
-    <>
+return (
+    <React.Fragment>
       <div
-        className={`fixed ${
-          isFullscreen ? "inset-0" : "right-0 top-0 h-full w-full sm:w-2/3"
-        } bg-white shadow-2xl z-50 animate-slideIn flex flex-col`}
+        className={
+          "fixed " +
+          (isMobile 
+            ? "top-0 left-0 right-0 bottom-0 w-full h-full" 
+            : isFullscreen 
+              ? "top-16 left-0 right-0 bottom-0" 
+              : "right-0 top-16 h-[calc(100vh-4rem)] w-full sm:w-2/3") +
+          " bg-gray-950 shadow-2xl z-50 animate-slideIn flex flex-col border border-gray-800"
+        }
         ref={containerRef}
       >
-        <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-thin text-gray-900">
-              Explore Connections
-            </h2>
-            <p className="text-sm text-gray-500 font-light">
-              Double click documents to see how they are connected
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+
+        {/* Canvas Area */}
+        <div
+          className="flex-1 relative bg-gray-950 overflow-hidden"
+          onMouseLeave={handleMouseUp}
+        >
+          {/* Floating Control Buttons */}
+          <div className="absolute top-7 right-4 z-10 flex items-center gap-2">
             <button
               onClick={toggleFullscreen}
-              className="sm:block hidden p-2 text-gray-500 hover:text-gray-600 hover:cursor-pointer transition-colors duration-200"
+              className="sm:block hidden p-2 text-gray-400 hover:text-cyan-400 hover:cursor-pointer transition-colors duration-200 rounded-lg hover:bg-gray-800/50 bg-gray-900/80 backdrop-blur-sm border border-gray-700"
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? (
@@ -832,36 +901,33 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-600 transition-colors hover:cursor-pointer"
+              className="p-2 text-gray-400 hover:text-red-400 transition-colors hover:cursor-pointer rounded-lg hover:bg-gray-800/50 bg-gray-900/80 backdrop-blur-sm border border-gray-700"
               aria-label="Close panel"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
-        </div>
-
-        {/* Canvas Area */}
-        <div
-          className="flex-1 relative bg-gray-50 overflow-hidden"
-          onMouseLeave={handleMouseUp}
-        >
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <div className="inline-block w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
+                <div className="inline-block w-6 h-6 sm:w-8 sm:h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                <p className="text-sm text-gray-400 mt-2">Loading connections...</p>
               </div>
             </div>
           ) : error ? (
             <div className="absolute inset-0 flex items-center justify-center p-4 text-center">
-              <CircleAlert className="w-5 h-5 font-thin me-2" />
-              <p className="text-lg font-thin text-gray-500">{error}</p>
+              <CircleAlert className="w-5 h-5 font-thin me-2 text-red-400" />
+              <p className="text-lg font-thin text-gray-300">{error}</p>
             </div>
           ) : (
             <>
               {/* NEW: Expansion Loading Spinner Overlay */}
               {isExpanding && ( // <--- ADD THIS BLOCK
-                <div className="absolute inset-0 flex items-center justify-center z-20 bg-gray-50/50">
-                  <div className="inline-block w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center z-20 bg-gray-950/80 backdrop-blur-sm">
+                  <div className="text-center">
+                    <div className="inline-block w-6 h-6 sm:w-8 sm:h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-400 mt-2">Expanding connections...</p>
+                  </div>
                 </div>
               )}
 
@@ -871,7 +937,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                 }`}
                 style={{
                   backgroundImage:
-                    "radial-gradient(circle, #d1d5db 1px, transparent 1px)",
+                    "radial-gradient(circle, #374151 1px, transparent 1px)",
                   backgroundSize: "25px 25px",
                   // NEW: Apply dimming effect
                   opacity: isExpanding ? 0.4 : 1, // <--- ADD THIS LINE
@@ -882,12 +948,100 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                 onMouseUp={handleMouseUp}
               >
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                  <defs>
+                    {/* Arrow marker definitions for different relationship types */}
+                    {Array.from(new Set(visibleEdges.map(e => e.relationshipType || "DEFAULT"))).map((relType) => {
+                      const relStyle = getRelationshipStyle(relType);
+                      const markerId = `arrow-${relType}`;
+                      const markerIdReverse = `arrow-reverse-${relType}`;
+                      return (
+                        <React.Fragment key={relType}>
+                          {/* Forward arrow (for OUTGOING direction) - smaller and clearer */}
+                          <marker
+                            id={markerId}
+                            markerWidth="8"
+                            markerHeight="8"
+                            refX="7"
+                            refY="2.5"
+                            orient="auto"
+                            markerUnits="strokeWidth"
+                          >
+                            <path
+                              d="M0,0 L0,5 L7,2.5 z"
+                              fill={relStyle.color}
+                              stroke={relStyle.color}
+                              strokeWidth="0.5"
+                              opacity="0.95"
+                            />
+                          </marker>
+                          {/* Reverse arrow (for INCOMING direction) - smaller and clearer */}
+                          <marker
+                            id={markerIdReverse}
+                            markerWidth="8"
+                            markerHeight="8"
+                            refX="1"
+                            refY="2.5"
+                            orient="auto"
+                            markerUnits="strokeWidth"
+                          >
+                            <path
+                              d="M7,0 L7,5 L0,2.5 z"
+                              fill={relStyle.color}
+                              stroke={relStyle.color}
+                              strokeWidth="0.5"
+                              opacity="0.95"
+                            />
+                          </marker>
+                        </React.Fragment>
+                      );
+                    })}
+                  </defs>
                   <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
                     {/* MODIFIED: Use visibleEdges */}
                     {visibleEdges.map((edge, i) => {
-                      const fromNode = nodes.find((n) => n.id === edge.from);
-                      const toNode = nodes.find((n) => n.id === edge.to);
-                      if (!fromNode || !toNode) return null;
+                      // Try to find nodes in both nodes array and visibleNodes array
+                      let fromNode = nodes.find((n) => n.id === edge.from);
+                      let toNode = nodes.find((n) => n.id === edge.to);
+                      
+                      // Fallback to visibleNodes if not found (shouldn't happen, but just in case)
+                      if (!fromNode) {
+                        fromNode = visibleNodes.find((n) => n.id === edge.from);
+                      }
+                      if (!toNode) {
+                        toNode = visibleNodes.find((n) => n.id === edge.to);
+                      }
+                      
+                      if (!fromNode || !toNode) {
+                        console.warn(`[TracePane] Edge rendering: Node not found`, {
+                          edgeFrom: edge.from,
+                          edgeTo: edge.to,
+                          foundFrom: !!fromNode,
+                          foundTo: !!toNode,
+                          totalNodes: nodes.length,
+                          visibleNodesCount: visibleNodes.length,
+                        });
+                        return null;
+                      }
+
+                      // Check if node coordinates are valid
+                      if (
+                        typeof fromNode.x !== 'number' || 
+                        typeof fromNode.y !== 'number' ||
+                        typeof toNode.x !== 'number' || 
+                        typeof toNode.y !== 'number' ||
+                        isNaN(fromNode.x) || 
+                        isNaN(fromNode.y) ||
+                        isNaN(toNode.x) || 
+                        isNaN(toNode.y)
+                      ) {
+                        console.warn(`[TracePane] Edge rendering: Invalid node coordinates`, {
+                          edgeFrom: edge.from,
+                          edgeTo: edge.to,
+                          fromNodeCoords: { x: fromNode.x, y: fromNode.y },
+                          toNodeCoords: { x: toNode.x, y: toNode.y },
+                        });
+                        return null;
+                      }
 
                       const relStyle = getRelationshipStyle(
                         edge.relationshipType || "DEFAULT"
@@ -900,15 +1054,44 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
 
                       if (length === 0) return null;
 
-                      // Calculate start and end points (short of the node centers)
+                      // Find all edges between the same nodes to calculate offset
+                      const edgesBetweenSameNodes = visibleEdges.filter(
+                        (e) => e.from === edge.from && e.to === edge.to
+                      );
+                      // Find the index of this edge in the filtered array
+                      const edgeIndex = edgesBetweenSameNodes.findIndex((e) => e === edge);
+                      const totalEdgesBetween = edgesBetweenSameNodes.length;
+                      
+                      // Calculate perpendicular offset for multiple edges
+                      // Spread them evenly around the center line
+                      const offsetDistance = totalEdgesBetween > 1 
+                        ? (edgeIndex - (totalEdgesBetween - 1) / 2) * 8 // 8px spacing between parallel edges
+                        : 0;
+                      
+                      // Perpendicular vector (90 degrees rotated)
+                      const perpX = -dy / length;
+                      const perpY = dx / length;
+
+                      // Determine arrow direction based on edge direction
+                      const isOutgoing = edge.direction === "OUTGOING";
+                      
+                      // Calculate start and end points with offset
+                      // Non-arrow end connects to node edge, arrow end has offset for visibility
+                      const startRadius = isOutgoing 
+                        ? NODE_VISUAL_RADIUS  // OUTGOING: start connects to node (no arrow)
+                        : NODE_VISUAL_RADIUS + ARROW_OFFSET; // INCOMING: start has arrow offset
+                      const endRadius = isOutgoing 
+                        ? NODE_VISUAL_RADIUS + ARROW_OFFSET  // OUTGOING: end has arrow offset
+                        : NODE_VISUAL_RADIUS; // INCOMING: end connects to node (no arrow)
+                      
                       const startX =
-                        fromNode.x + (dx / length) * NODE_VISUAL_RADIUS;
+                        fromNode.x + (dx / length) * startRadius + perpX * offsetDistance;
                       const startY =
-                        fromNode.y + (dy / length) * NODE_VISUAL_RADIUS;
+                        fromNode.y + (dy / length) * startRadius + perpY * offsetDistance;
                       const endX =
-                        toNode.x - (dx / length) * NODE_VISUAL_RADIUS;
+                        toNode.x - (dx / length) * endRadius + perpX * offsetDistance;
                       const endY =
-                        toNode.y - (dy / length) * NODE_VISUAL_RADIUS;
+                        toNode.y - (dy / length) * endRadius + perpY * offsetDistance;
 
                       // Calculate midpoint for label
                       const midX = (startX + endX) / 2;
@@ -926,50 +1109,66 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                       const labelWidth = labelText.length * 7 + 16; // Approximate width
                       const labelHeight = 18;
 
+                      // Create unique key and gradient ID using relationshipType
+                      const uniqueKey = `${edge.from}-${edge.to}-${edge.relationshipType}-${i}`;
+                      const gradientId = `gradient-${edge.from}-${edge.to}-${edge.relationshipType}-${i}`;
+                      
+                      // Set up arrow markers based on direction (isOutgoing already calculated above)
+                      const relType = edge.relationshipType || "DEFAULT";
+                      const forwardMarkerId = `arrow-${relType}`;
+                      const reverseMarkerId = `arrow-reverse-${relType}`;
+                      const arrowMarkerEnd = isOutgoing ? `url(#${forwardMarkerId})` : undefined;
+                      const arrowMarkerStart = !isOutgoing ? `url(#${reverseMarkerId})` : undefined;
+
                       return (
                         <g
-                          key={i}
+                          key={uniqueKey}
                           className={edge.isNew ? "animate-edgeFadeIn" : ""}
                         >
-                          {/* Connection Line */}
+                          {/* Connection Line with gradient */}
+                          <defs>
+                            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" style={{stopColor: relStyle.color, stopOpacity: 0.8}} />
+                              <stop offset="50%" style={{stopColor: relStyle.color, stopOpacity: 1}} />
+                              <stop offset="100%" style={{stopColor: relStyle.color, stopOpacity: 0.8}} />
+                            </linearGradient>
+                          </defs>
                           <line
                             x1={startX}
                             y1={startY}
                             x2={endX}
                             y2={endY}
-                            stroke={relStyle.color}
-                            strokeWidth="2"
+                            stroke={`url(#${gradientId})`}
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            markerEnd={arrowMarkerEnd}
+                            markerStart={arrowMarkerStart}
                           />
 
-                          {/* Start dot */}
-                          <circle
-                            cx={startX}
-                            cy={startY}
-                            r="4"
-                            fill={relStyle.color}
-                          />
-
-                          {/* End dot */}
-                          <circle
-                            cx={endX}
-                            cy={endY}
-                            r="4"
-                            fill={relStyle.color}
-                          />
+                          {/* Dots removed - arrows now clearly show direction */}
 
                           {/* Relationship Label - rotated to align with line */}
                           <g
                             transform={`translate(${midX}, ${midY}) rotate(${labelAngle})`}
                           >
-                            {/* Background rectangle */}
+                            {/* Background rectangle with glow */}
+                            <rect
+                              x={-labelWidth / 2 - 2}
+                              y={-labelHeight / 2 - 2}
+                              width={labelWidth + 4}
+                              height={labelHeight + 4}
+                              fill={relStyle.color}
+                              opacity="0.2"
+                              rx="6"
+                            />
                             <rect
                               x={-labelWidth / 2}
                               y={-labelHeight / 2}
                               width={labelWidth}
                               height={labelHeight}
-                              fill="white"
+                              fill="#1e293b"
                               stroke={relStyle.color}
-                              strokeWidth="1"
+                              strokeWidth="1.5"
                               rx="4"
                               opacity="0.95"
                             />
@@ -979,9 +1178,9 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                               y="0"
                               textAnchor="middle"
                               dominantBaseline="central"
-                              fill={relStyle.textColor}
-                              fontSize="10"
-                              fontWeight="600"
+                              fill={relStyle.color}
+                              fontSize="9"
+                              fontWeight="700"
                             >
                               {labelText}
                             </text>
@@ -1016,27 +1215,27 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
           )}
 
           {/* Controls */}
-          <div className="controls-panel absolute bottom-4 right-4 flex flex-col gap-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-2">
+          <div className="controls-panel absolute bottom-4 right-4 flex flex-col gap-2 bg-gray-900/90 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700 p-2">
             <button
               onClick={handleZoomIn}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hover:cursor-pointer"
+              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors hover:cursor-pointer text-gray-300 hover:text-cyan-400"
               title="Zoom In"
             >
-              <ZoomIn className="w-5 h-5 text-gray-700" />
+              <ZoomIn className="w-5 h-5" />
             </button>
             <button
               onClick={handleZoomOut}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hover:cursor-pointer"
+              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors hover:cursor-pointer text-gray-300 hover:text-cyan-400"
               title="Zoom Out"
             >
-              <ZoomOut className="w-5 h-5 text-gray-700" />
+              <ZoomOut className="w-5 h-5" />
             </button>
             <button
               onClick={handleResetView}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors hover:cursor-pointer"
+              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors hover:cursor-pointer text-gray-300 hover:text-cyan-400"
               title="Reset View"
             >
-              <Shrink className="w-5 h-5 text-gray-700" />
+              <Shrink className="w-5 h-5" />
             </button>
             {selectedNodeId && (
               <button
@@ -1044,7 +1243,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
                 className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
                   isIsolationMode
                     ? "bg-cyan-500 text-white hover:bg-cyan-600"
-                    : "hover:bg-gray-100 text-gray-700"
+                    : "hover:bg-gray-800/50 text-gray-300 hover:text-cyan-400"
                 }`}
                 title={
                   isIsolationMode
@@ -1057,122 +1256,102 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
             )}
           </div>
 
-          {/* Relationship Legend */}
-          <div className="legend-panel absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3 max-w-xs">
-            <h3 className="text-xs font-light text-gray-700 mb-2">
-              Relationship Types
-            </h3>
-            <div className="space-y-2">
-              {Object.entries(relationshipConfig)
-                .filter(([key]) => key !== "DEFAULT")
-                .map(([type, config]) => (
-                  <div key={type} className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <div
-                        className="w-1 h-1 rounded-full"
-                        style={{ backgroundColor: config.color }}
-                      ></div>
-                      <div
-                        className="w-6 h-0.5"
-                        style={{ backgroundColor: config.color }}
-                      ></div>
-                      <div
-                        className="w-1 h-1 rounded-full"
-                        style={{ backgroundColor: config.color }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-light text-gray-700">
-                      {config.allias}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-          <div className="absolute top-35 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
-            <label className="text-xs font-light text-gray-700 block mb-2 tracking-wide ">
-              Filter by Relationship
-            </label>
-            <div className="relative">
-              <Select
-                value={relationshipFilter}
-                onValueChange={setRelationshipFilter}
-              >
-                <SelectTrigger className="w-full text-xs font-light border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer">
+          {/* Top Control Bar */}
+          <div className="absolute top-5 left-1 right-4 flex gap-4">
+            {/* Relationship Filter */}
+            <div className="bg-transparent rounded-xl p-3 flex-1 max-w-xs">
+              
+              <div className="relative">
+                <Select
+                  value={relationshipFilter}
+                  onValueChange={setRelationshipFilter}
+                >
+                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border border-gray-700 bg-gray-900/80 backdrop-blur-sm text-gray-300">
                   <SelectValue placeholder="All Relationships" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 text-gray-300 font-medium border-none">
                   <SelectItem
                     value="ALL"
                     className="text-xs hover:cursor-pointer"
                   >
                     All Relationships
                   </SelectItem>
-                  {Object.keys(relationshipConfig)
-                    .filter((key) => key !== "DEFAULT")
-                    .map((type) => (
-                      <SelectItem
-                        key={type}
-                        value={type}
-                        className="text-xs hover:cursor-pointer"
-                      >
-                        {relationshipConfig[type].allias || type}
-                      </SelectItem>
-                    ))}
+                  {Array.from(new Set(edges.map(edge => edge.relationshipType)))
+                    .filter(type => type && type !== "DEFAULT")
+                    .map((type) => {
+                      const config = relationshipConfig[type] || relationshipConfig["DEFAULT"];
+                      return (
+                        <SelectItem
+                          key={type}
+                          value={type}
+                          className="text-xs hover:cursor-pointer"
+                        >
+                          {config.allias || type}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Relationship Legend - Only show when relationships exist */}
+            {Array.from(new Set(edges.map(edge => edge.relationshipType)))
+              .filter(type => type && type !== "DEFAULT").length > 0 && (
+                
+                <div className="flex flex-wrap gap-3 mt-3">
+                  {Array.from(new Set(edges.map(edge => edge.relationshipType)))
+                    .filter(type => type && type !== "DEFAULT")
+                    .map((type) => {
+                      const config = relationshipConfig[type] || relationshipConfig["DEFAULT"];
+                      return (
+                        <div key={type} className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full border border-white/20"
+                            style={{ backgroundColor: config.color }}
+                          ></div>
+                          <span className="text-xs font-medium text-gray-300">
+                            {config.allias || type}
+                          </span>
+                        </div>
+                      );
+                    })}
+              </div>
+            )}
           </div>
+        </div>        
+      </div>
+
+      {showTooltip && (
+        <div
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-fadeInOut
+               bg-gray-900 text-white px-5 py-4 rounded-lg shadow-lg"
+        >
+          <p className="font-medium">This is the origin node of connections</p>
+          <p className="text-sm font-medium">Click other nodes to play</p>
         </div>
+      )}
 
         {/* Footer Info */}
-        <div className="bg-gray-50 border-t border-gray-200 p-3 text-sm font-thin text-gray-600 flex justify-between">
+        <div className="bg-gray-900/80 backdrop-blur-sm border-t border-gray-700 p-3 text-sm font-thin text-gray-300 flex justify-between">
           <span>
-            <span className="font-light text-gray-900">{nodes.length}</span>{" "}
+            <span className="font-light text-cyan-400">{nodes.length}</span>{" "}
             document{nodes.length !== 1 ? "s" : ""} •
-            <span className="font-light ml-1 text-gray-900">
+            <span className="font-light ml-1 text-cyan-400">
               {edges.length}
             </span>{" "}
             connection{edges.length !== 1 ? "s" : ""}
           </span>
           <div>
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-gray-400">
               Click nodes to expand and explore connections
             </span>
             <span> • </span>
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-gray-400">
               Drag nodes or background to interact
             </span>
           </div>
         </div>
-
-        {isMobile && (
-          <div className="absolute inset-0 bg-white/30 z-50 flex items-center justify-center text-center px-6 backdrop-blur-xs">
-            <div className="bg-transparent shadow-[0_0_15px_rgba(0,0,0,0.2)] px-6 py-6 rounded-lg flex flex-col items-center justify-center text-center">
-              <Info className="text-gray-800 mb-3 w-6 h-6" />
-              <p className="text-gray-800 text-md font-medium">
-                Please use a Desktop to explore connections. <br />
-                Mobile and Tablet devices are not supported yet.
-              </p>
-              <button
-                onClick={() => window.history.back()}
-                className="mt-4 bg-transparent text-gray-800 rounded-lg hover:bg-gray-700 transition-all"
-              >
-                ← 
-              </button> 
-            </div>
-          </div>
-        )}
       </div>
-
-      {showTooltip && (
-        <div
-          className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] animate-fadeInOut
-               bg-gray-900 text-white px-5 py-4 rounded-lg shadow-lg"
-        >
-          <p className="font-light">This is the origin node of connections</p>
-          <p className="text-sm font-thin">Click other nodes to play</p>
-        </div>
-      )}
 
       <style jsx>{`
         @keyframes slideIn {
@@ -1251,7 +1430,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
           animation: fadeInOut 2.5s ease-in-out forwards;
         }
       `}</style>
-    </>
+    </React.Fragment>
   );
 };
 
