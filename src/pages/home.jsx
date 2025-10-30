@@ -978,7 +978,7 @@ const Home = () => {
                 {/* Copyright */}
                 <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer">
                 <p className="text-gray-400 text-sm">
-                    <span className="hover:text-white">Open Data</span> @{new Date().getFullYear()}. // All rights reserved.
+                    <span className="hover:text-white">Open Data</span> © {new Date().getFullYear()}. All rights reserved.
                   </p>
                 </a>
                 
