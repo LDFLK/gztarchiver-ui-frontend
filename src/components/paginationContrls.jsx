@@ -65,10 +65,10 @@ const PaginationControls = ({ pagination, currentPage, onPageChange }) => {
             disabled={page === "..."}
             className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
               page === currentPage
-                ? " text-white hover:cursor-pointer shadow-lg"
+                ? " dark:text-white text-gray-900 hover:cursor-pointer"
                 : page === "..."
                 ? "cursor-default text-gray-400"
-                : "text-cyan-400 hover:text-white hover:cursor-pointer"
+                : "text-cyan-400 dark:hover:text-white hover:text-gray-900 hover:cursor-pointer"
             }`}
           >
             {page}

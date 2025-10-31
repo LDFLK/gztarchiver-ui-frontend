@@ -838,13 +838,13 @@ const Home = () => {
                           onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
-                          className={`flex-1 bg-transparent dark:text-white text-gray-700 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
+                          className={`flex-1 bg-transparent dark:text-white text-gray-600 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
                         />
                         <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-1 sm:space-x-2 mr-1 sm:mr-2'}`}>
                           {searchInput && (
                       <button
                         onClick={clearSearch}
-                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} dark:text-gray-400 text-gray-600 dark:hover:dark:text-white hover:text-gray-900 dark:hover:bg-gray-700 hover:bg-gray-300 rounded-lg transition-colors`}
+                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} dark:text-gray-400 text-gray-400 dark:hover:dark:text-white hover:text-gray-900 dark:hover:bg-gray-700 hover:bg-gray-300 rounded-lg transition-colors`}
                       >
                               <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                       </button>
@@ -967,12 +967,12 @@ const Home = () => {
                         {activeFilters.map((filter) => (
                           <div
                             key={filter.id}
-                                className="flex items-center space-x-1.5 sm:space-x-2 px-2 py-1 sm:px-3 sm:py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400"
+                                className="flex items-center space-x-1.5 sm:space-x-2 px-2 py-1 sm:px-3 sm:py-1 dark:bg-cyan-500/10 dark:border dark:border-cyan-500/30 rounded-lg dark:text-cyan-400 bg-gray-100 text-gray-500"
                           >
                                 <span className="text-xs font-medium">{filter.label}</span>
                             <button
                               onClick={() => removeFilter(filter)}
-                                  className="text-cyan-400 dark:hover:dark:text-white text-gray-900 hover:text-gray-900 hover:cursor-pointer"
+                                  className="dark:text-cyan-400 text-gray-500 dark:hover:dark:text-white hover:text-gray-900 hover:cursor-pointer"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1017,7 +1017,7 @@ const Home = () => {
                 {loading && currentUrlQuery && (
                   <div className="flex justify-center items-center py-12">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className="w-8 h-8 border-2 border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
+                      <div className="w-8 h-8 border-2 dark:border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
                       {/* <p className="dark:text-gray-400 text-gray-600 font-medium">Searching archives...</p> */}
                     </div>
                   </div>
@@ -1242,7 +1242,7 @@ const Home = () => {
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 dark:text-white text-gray-900 rounded-full shadow-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-110 flex items-center justify-center group hover:cursor-pointer"
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full shadow-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-110 flex items-center justify-center group hover:cursor-pointer"
           title="Go to top"
         >
           <ChevronUp className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" />
