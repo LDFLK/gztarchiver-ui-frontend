@@ -929,7 +929,7 @@ return (
           <div className="absolute top-7 right-4 z-10 flex items-center gap-2">
             <button
               onClick={toggleFullscreen}
-              className="sm:block hidden p-2 dark:text-gray-400 text-gray-600 hover:text-cyan-400 hover:cursor-pointer transition-colors duration-200 rounded-lg dark:hover:dark:bg-gray-800 bg-gray-200/50 hover:bg-gray-200/50 dark:dark:bg-gray-900 bg-gray-100/80 bg-gray-100/80 backdrop-blur-sm border dark:border-gray-700 border-gray-300"
+              className="sm:block hidden p-2 dark:text-gray-400 text-gray-600 hover:text-cyan-400 hover:cursor-pointer transition-colors duration-200 rounded-lg dark:hover:bg-gray-800/50 hover:bg-gray-200/50 dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm border dark:border-gray-700 border-gray-300"
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? (
@@ -940,7 +940,7 @@ return (
             </button>
             <button
               onClick={onClose}
-              className="p-2 dark:text-gray-400 text-gray-600 hover:text-red-400 transition-colors hover:cursor-pointer rounded-lg dark:hover:dark:bg-gray-800 bg-gray-200/50 hover:bg-gray-200/50 dark:dark:bg-gray-900 bg-gray-100/80 bg-gray-100/80 backdrop-blur-sm border dark:border-gray-700 border-gray-300"
+              className="p-2 dark:text-gray-400 text-gray-600 hover:text-red-400 transition-colors hover:cursor-pointer rounded-lg dark:hover:bg-gray-800/50 hover:bg-gray-200/50 dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm border dark:border-gray-700 border-gray-300"
               aria-label="Close panel"
             >
               <X className="w-6 h-6" />
@@ -1305,7 +1305,7 @@ return (
                   value={relationshipFilter}
                   onValueChange={setRelationshipFilter}
                 >
-                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border dark:border-gray-700 border-gray-300 dark:dark:bg-gray-900 bg-gray-100/80 bg-gray-100/80 backdrop-blur-sm dark:text-gray-300 text-gray-700">
+                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border dark:border-gray-700 border-gray-300 dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm dark:text-gray-300 text-gray-700">
                   <SelectValue placeholder="All Relationships" />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-800 bg-gray-200 dark:text-gray-300 text-gray-700 font-medium border-none">

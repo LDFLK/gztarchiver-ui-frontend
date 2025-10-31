@@ -704,6 +704,11 @@ const Home = () => {
 
   return (
     <>
+      {/* Theme Toggle - Fixed to Right Side, Vertically Centered */}
+      <div className="fixed right-0 sm:top-1/2 top-30 -translate-y-1/2 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Modern Tech Archive Background */}
       <div className="min-h-screen dark:bg-gray-950 bg-white relative overflow-hidden">
         {/* Tech Grid Background */}
@@ -733,11 +738,6 @@ const Home = () => {
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
                     {/* <p className="text-xs dark:text-gray-400 text-gray-600">Sri Lankan Government Documents Archive</p> */}
                   </div>
-                </div>
-
-                {/* Theme Toggle */}
-                <div className="flex items-center space-x-2">
-                  <ThemeToggle />
                 </div>
 
                 {/* Stats Overview - Always Visible */}
@@ -1079,10 +1079,10 @@ const Home = () => {
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r dark:border-gray-800 border-gray-300 scrollbar-thin dark:scrollbar-track-gray-900 scrollbar-track-gray-200 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r dark:border-gray-800 border-gray-300 scrollbar-thin dark:scrollbar-track-gray-900 scrollbar-track-gray-200 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
           {/* Loading Overlay */}
           {isTracePaneExpanding && (
-            <div className="absolute inset-0 flex items-center justify-center z-20 dark:bg-gray-950 bg-white/80 bg-white/80 backdrop-blur-sm">
+            <div className="absolute inset-0 flex items-center justify-center z-20 dark:bg-gray-950 bg-white/80 backdrop-blur-sm">
               <div className="text-center">
                 <div className="inline-block w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
                 <p className="text-sm dark:text-gray-400 text-gray-600 mt-2">Loading connections...</p>
@@ -1094,9 +1094,9 @@ const Home = () => {
           <div className={`pt-6 ${isTracePaneExpanding ? 'opacity-40' : ''}`}>
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 flex items-center justify-center">
-                <FileText className="w-8 h-8 dark:text-white text-gray-900 text-gray-900" />
+                <FileText className="w-8 h-8 dark:text-white text-gray-900" />
               </div>
-              <h2 className="text-2xl font-bold dark:text-white text-gray-900 text-gray-900 mb-2">
+              <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
                 {selectedNodeInfo.node.data.title}
               </h2>
               <p className="text-sm dark:text-gray-400 text-gray-600 font-light">
