@@ -822,7 +822,7 @@ const Home = () => {
                 <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2 quick-search-container`}>
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
-                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
+                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
                       <div className="flex items-center">
                         <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-2 sm:ml-4'}`} />
                   <input
@@ -870,7 +870,7 @@ const Home = () => {
                     <div className="mt-3 sm:mt-4 mb-6 sm:mb-8 transition-all duration-300 opacity-100">
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
-                        <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
+                        <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
                           <div className="flex items-center justify-between mb-3 sm:mb-4">
                             <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-base sm:text-lg'} font-semibold text-white`}>Quick Search</h3>
                             <button
@@ -905,7 +905,7 @@ const Home = () => {
                                   <button
                                     key={index}
                                     onClick={() => handleTypes(type)}
-                                    className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                    className="px-3 py-1.5 bg-gray-800/50 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
                                   >
                                     {type}
                                   </button>
@@ -924,7 +924,7 @@ const Home = () => {
                                 <button
                                   key={index}
                                   onClick={() => handleCriteria(criteria)}
-                                  className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-mono hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                  className="px-3 py-1.5 bg-gray-800/50 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
                                 >
                                   {criteria}
                                 </button>
@@ -933,12 +933,12 @@ const Home = () => {
                           </div>
 
                           <div className="border-t border-gray-700 pt-3 sm:pt-4">
-                            <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">Search Examples:</p>
+                            <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3 font-medium">Search Examples:</p>
                             <div className="flex flex-wrap gap-1.5 sm:gap-2">
                               {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
                                 <span
                                   key={example}
-                                  className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
+                                  className="px-2 py-1 sm:px-3 sm:py-2 bg-gray-800 text-gray-300 rounded-lg text-xs font-medium"
                                 >
                                   {example}
                                 </span>
