@@ -177,16 +177,15 @@ const Home = () => {
     const filters = [];
     const trimmedQuery = query.trim();
 
-    // Parse other patterns that might not be in quick search
-    const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2}){0,2})/gi);
+    // Parse date patterns (date:YYYY, date:YYYY-MM, date:YYYY-MM-DD)
+    const dateMatches = trimmedQuery.match(/date:\d{4}(?:-\d{2}){0,2}/gi);
     if (dateMatches) {
       dateMatches.forEach((match) => {
-        const dateValue = match.split(":")[1];
-        // Only add if not already in filters
         if (!filters.some((f) => f.query === match)) {
+          const dateValue = match.split(":")[1];
           filters.push({
             id: `date-${dateValue}`,
-            label: dateValue,
+            label: `Date: ${dateValue}`,
             color: "bg-blue-50 text-blue-700 border-blue-200",
             query: match,
           });
@@ -204,6 +203,54 @@ const Home = () => {
             id: `id-${idValue}`,
             label: `ID: ${idValue}`,
             color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Type patterns (type:XXXX)
+    const typeMatches = trimmedQuery.match(/type:[\w_-]+/gi);
+    if (typeMatches) {
+      typeMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const typeValue = match.split(":")[1];
+          filters.push({
+            id: `type-${typeValue}`,
+            label: `Type: ${typeValue.replace(/_/g, " ")}`,
+            color: "bg-purple-50 text-purple-700 border-purple-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Source patterns (source:XXXX)
+    const sourceMatches = trimmedQuery.match(/source:[\w.]+/gi);
+    if (sourceMatches) {
+      sourceMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const sourceValue = match.split(":")[1];
+          filters.push({
+            id: `source-${sourceValue}`,
+            label: `Source: ${sourceValue}`,
+            color: "bg-orange-50 text-orange-700 border-orange-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Available patterns (available:XXXX)
+    const availableMatches = trimmedQuery.match(/available:[\w]+/gi);
+    if (availableMatches) {
+      availableMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const availableValue = match.split(":")[1];
+          filters.push({
+            id: `available-${availableValue}`,
+            label: `Available: ${availableValue}`,
+            color: "bg-green-50 text-green-700 border-green-200",
             query: match,
           });
         }
