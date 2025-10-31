@@ -22,7 +22,7 @@ import {
 
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
 
-const TracePane = ({ documentId, onClose, onNodeSelect }) => {
+const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => {
   // --- State Variables ---
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -33,8 +33,12 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isExpanding, setIsExpanding] = useState(false);
+  const [isFetchingNodeData, setIsFetchingNodeData] = useState(false); // Loading state for single click fetch
   const [isIsolationMode, setIsIsolationMode] = useState(false);
   const [relationshipFilter, setRelationshipFilter] = useState("ALL");
+
+  // Cache for fetched node connections to avoid duplicate API calls
+  const nodeConnectionsCache = useRef(new Map());
 
   // Canvas Dragging State
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
@@ -181,6 +185,9 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
 
       // Reset isolation mode on new document load
       setIsIsolationMode(false);
+      
+      // Clear cache when document changes to avoid stale data
+      nodeConnectionsCache.current.clear();
 
       try {
         const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
@@ -223,6 +230,14 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       fetchDocument();
     }
   }, [documentId, calculateCenter]);
+
+  // Notify parent component when any loading state changes (single click fetch or expansion)
+  useEffect(() => {
+    if (onExpandingChange) {
+      // Show loading if either expanding or fetching node data for single click
+      onExpandingChange(isExpanding || isFetchingNodeData);
+    }
+  }, [isExpanding, isFetchingNodeData, onExpandingChange]);
 
   // --- API Simulation/Integration ---
 
@@ -303,15 +318,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     setSelectedNodeId(nodeId);
     centerNodeWithAnimation(nodeId);
 
-    // ********** FIX: Move data fetch and onNodeSelect here **********
-    const connectedDocs = await fetchConnectedDocuments(nodeId);
-
-    if (onNodeSelect && clickedNode) {
-      onNodeSelect({
-        node: clickedNode,
-        connections: connectedDocs || [],
-      });
-    }
+    // Check if collapsing first
     if (expandedNodes.has(nodeId)) {
       // ✅ Collapse this node:
       //   - If it's the root: remove all descendants + edges.
@@ -393,6 +400,24 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     // 4. Expansion Logic Starts - ACTIVATE LOADING STATE HERE
     // ----------------------------------------------------
     setIsExpanding(true); // <-- START LOADING/DIMMING STATE
+
+    // Check cache first - if data was already fetched on single click, reuse it
+    let connectedDocs = nodeConnectionsCache.current.get(nodeId);
+    
+    if (!connectedDocs) {
+      // Data not cached, fetch it
+      connectedDocs = await fetchConnectedDocuments(nodeId);
+      // Cache the result for future use
+      nodeConnectionsCache.current.set(nodeId, connectedDocs || []);
+    }
+
+    // Update info pane with fetched data
+    if (onNodeSelect && clickedNode) {
+      onNodeSelect({
+        node: clickedNode,
+        connections: connectedDocs || [],
+      });
+    }
 
     // Expand node (Mark it as expanded regardless of connections)
     setExpandedNodes((prev) => new Set([...prev, nodeId]));
@@ -530,7 +555,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       setNodes((prev) => prev.map((n) => ({ ...n, isNew: false })));
       setEdges((prev) => prev.map((e) => ({ ...e, isNew: false })));
       setIsExpanding(false); // <-- STOP LOADING AFTER ANIMATION
-    }, 50);
+    }); 
   };
 
   const handleNodeMouseUp = (e, nodeId) => {
@@ -567,7 +592,21 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
         // 🔥 Fetch connected documents to update info pane
         const clickedNode = nodes.find((n) => n.id === nodeId);
         if (onNodeSelect && clickedNode) {
-          const connectedDocs = await fetchConnectedDocuments(nodeId);
+          // Check cache first
+          let connectedDocs = nodeConnectionsCache.current.get(nodeId);
+          
+          if (!connectedDocs) {
+            // Data not cached, fetch it
+            setIsFetchingNodeData(true);
+            try {
+              connectedDocs = await fetchConnectedDocuments(nodeId);
+              // Cache the result
+              nodeConnectionsCache.current.set(nodeId, connectedDocs || []);
+            } finally {
+              setIsFetchingNodeData(false);
+            }
+          }
+          
           onNodeSelect({
             node: clickedNode,
             connections: connectedDocs || [],

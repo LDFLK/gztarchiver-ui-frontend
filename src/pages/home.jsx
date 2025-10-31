@@ -42,6 +42,7 @@ const Home = () => {
   const [searchCriteria, setSearchCriteria] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
+  const [isTracePaneExpanding, setIsTracePaneExpanding] = useState(false);
   const [animatedStats, setAnimatedStats] = useState({
     totalDocs: 0,
     availableDocs: 0,
@@ -141,6 +142,10 @@ const Home = () => {
 
   const handleNodeSelect = (nodeData) => {
     setSelectedNodeInfo(nodeData);
+  };
+
+  const handleExpandingChange = (isExpanding) => {
+    setIsTracePaneExpanding(isExpanding);
   };
 
   // ADD THIS useEffect to initialize from URL
@@ -1022,8 +1027,18 @@ const Home = () => {
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
         <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 bg-gray-950 shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r border-gray-800 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
+          {/* Loading Overlay */}
+          {isTracePaneExpanding && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 bg-gray-950/80 backdrop-blur-sm">
+              <div className="text-center">
+                <div className="inline-block w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                <p className="text-sm text-gray-400 mt-2">Loading connections...</p>
+              </div>
+            </div>
+          )}
+          
           {/* Header with Icon and Title */}
-          <div className="pt-6">
+          <div className={`pt-6 ${isTracePaneExpanding ? 'opacity-40' : ''}`}>
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 flex items-center justify-center">
                 <FileText className="w-8 h-8 text-white" />
@@ -1036,7 +1051,7 @@ const Home = () => {
               </p>
             </div>
           </div>
-          <div className="p-4">
+          <div className={`p-4 transition-opacity duration-300 ${isTracePaneExpanding ? 'opacity-40' : ''}`}>
             {/* Connections List */}
             {selectedNodeInfo.connections.length > 0 && (
               <div>
@@ -1123,6 +1138,7 @@ const Home = () => {
             documentId={selectedDocumentId}
             onClose={handleClosePane}
             onNodeSelect={handleNodeSelect}
+            onExpandingChange={handleExpandingChange}
           />
           
           {/* Mobile Message Overlay - Shows when mobile and tracePane is active */}
