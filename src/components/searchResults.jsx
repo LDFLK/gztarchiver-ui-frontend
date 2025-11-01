@@ -46,16 +46,16 @@ const SearchResults = ({
         <div className="w-full max-w-6xl mx-auto">
           <div className={`${isShrunked ? 'mb-2' : 'mb-4 sm:mb-6'} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
             <div>
-              <h2 className={`font-bold text-white mb-2 ${isShrunked ? 'text-sm' : 'text-xl sm:text-2xl'}`}>
+              <h2 className={`font-bold dark:text-white text-gray-900 mb-2 ${isShrunked ? 'text-sm' : 'text-xl sm:text-2xl'}`}>
                 Search Results for "{query}"
               </h2>
               {pagination.total_count > 0 && (
-                <p className={`text-gray-400 font-light ${isShrunked ? 'text-xs' : 'text-xs sm:text-sm'}`}>
-                  <span className="font-medium text-cyan-400">
+                <p className={`dark:text-gray-400 text-gray-600 font-light ${isShrunked ? 'text-xs' : 'text-xs sm:text-sm'}`}>
+                  <span className="font-medium dark:text-cyan-400 text-gray-900">
                     {pagination.total_count.toLocaleString()}
                   </span>{" "}
                   records found - showing{" "}
-                  <span className="font-medium text-cyan-400">
+                  <span className="font-medium dark:text-cyan-400 text-gray-900">
                     {pagination.start_index} - {pagination.end_index}
                   </span>
                 </p>
@@ -65,7 +65,7 @@ const SearchResults = ({
               <div className="relative limit-dropdown-container">
                 <button
                   onClick={() => setShowLimitDropdown(!showLimitDropdown)}
-                  className={`flex items-center gap-1 ${isShrunked ? 'px-2 py-1 text-[0.65rem]' : 'px-3 py-1.5 text-xs'} text-gray-300 border border-gray-600 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 transition-colors duration-200 hover:cursor-pointer`}
+                  className={`flex items-center gap-1 ${isShrunked ? 'px-2 py-1 text-[0.65rem]' : 'px-3 py-1.5 text-xs'} text-gray-900 border border-gray-200 dark:text-gray-300 dark:border dark:border-gray-600 dark:bg-gray-800/50 dark:hover:bg-gray-700/50 transition-colors duration-200 hover:cursor-pointer rounded-lg`}
                 >
                   <span>{limit} per page</span>
                   <ChevronDown
@@ -75,7 +75,7 @@ const SearchResults = ({
                   />
                 </button>
                 <div
-                  className={`absolute right-0 top-full mt-1 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
+                  className={`absolute right-0 top-full mt-1 dark:bg-gray-900/90 bg-white/90 backdrop-blur-sm border dark:border-gray-700 border-gray-200 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
                     showLimitDropdown
                       ? "opacity-100 scale-100"
                       : "opacity-0 scale-95 pointer-events-none"
@@ -85,10 +85,10 @@ const SearchResults = ({
                     <button
                       key={option}
                       onClick={() => handleLimitChange(option)}
-                      className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-700/50 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      className={`block w-full text-left px-3 py-2 text-xs dark:hover:bg-gray-700/50 hover:bg-gray-300 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
                         option === limit
-                          ? "bg-cyan-500/10 text-cyan-400"
-                          : "text-gray-300"
+                          ? "dark:bg-cyan-500/10 bg-gray-300 dark:text-cyan-400 text-gray-800"
+                          : "dark:text-gray-300 text-gray-800"
                       }`}
                     >
                       {option} per page
@@ -98,7 +98,7 @@ const SearchResults = ({
               </div>
               <button
                 onClick={onBack}
-                className={`${isShrunked ? 'text-xs' : 'text-sm'} me-1 text-cyan-500 hover:text-cyan-300 transition-colors hover:cursor-pointer`}
+                className={`${isShrunked ? 'text-xs' : 'text-sm'} me-1 text-gray-800 hover:text-gray-900 dark:text-cyan-500 dark:hover:text-cyan-300 transition-colors hover:cursor-pointer`}
               >
                 ← Back to Home
               </button>
@@ -110,20 +110,20 @@ const SearchResults = ({
               <div
                 key={item.id || index}
                 data-document-id={item.document_id}
-                className="bg-gray-900/10 rounded-2xl p-4 sm:p-6 hover:bg-gray-800/60 transition-all duration-300 group"
+                className="dark:bg-gray-900/10 bg-transparent rounded-2xl p-4 sm:p-6 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all duration-300 group"
               >
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-400" />
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 dark:text-cyan-400 text-gray-900" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base sm:text-lg font-medium text-white mb-2 break-words">
+                    <h3 className="text-base sm:text-lg font-medium dark:text-white text-gray-900 mb-2 break-words">
                       {item.description || "No description"}
                     </h3>
-                    <div className="text-gray-300 text-xs sm:text-sm mb-3 break-words">
+                    <div className="dark:text-gray-300 text-gray-600 text-xs sm:text-sm mb-3 break-words">
                       <span className="block sm:inline">
                         Document Type:{" "}
-                        <span className="text-cyan-400 font-medium">
+                        <span className="dark:text-cyan-400 text-gray-600 font-medium">
                           {item.document_type
                             ? item.document_type
                                 .toLowerCase()
@@ -138,11 +138,11 @@ const SearchResults = ({
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-                      <span className="break-all text-gray-300">
-                        ID: <span className="text-cyan-400 font-mono">{item.document_id || "N/A"}</span>
+                      <span className="break-all dark:text-gray-300 text-gray-600">
+                        ID: <span className="dark:text-cyan-400 text-gray-600 font-mono">{item.document_id || "N/A"}</span>
                       </span>
-                      <span className="text-gray-300">
-                        Date: <span className="text-cyan-400">{item.document_date || "N/A"}</span>
+                      <span className="dark:text-gray-300 text-gray-600">
+                        Date: <span className="dark:text-cyan-400 text-gray-600">{item.document_date || "N/A"}</span>
                       </span>
                       {item.source && (
                         <a
@@ -152,7 +152,7 @@ const SearchResults = ({
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
                               ? "text-gray-500 cursor-not-allowed"
-                              : "text-cyan-400 hover:text-white"
+                              : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
                           }`}
                         >
                           Source
@@ -166,7 +166,7 @@ const SearchResults = ({
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
                               ? "text-gray-500 cursor-not-allowed"
-                              : "text-cyan-400 hover:text-white"
+                              : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
                           }`}
                         >
                           Download
@@ -180,7 +180,7 @@ const SearchResults = ({
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
                               ? "text-gray-500 cursor-not-allowed"
-                              : "text-cyan-400 hover:text-white"
+                              : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
                           }`}
                         >
                           View
@@ -192,7 +192,7 @@ const SearchResults = ({
                         className={`transition-all duration-200 ${
                           item.availability === "Unavailable"
                             ? "text-gray-500 cursor-not-allowed"
-                            : "text-cyan-400 hover:text-white"
+                            : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
                         }`}
                       >
                         Explore Connections

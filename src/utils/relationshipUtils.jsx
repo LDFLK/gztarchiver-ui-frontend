@@ -1,7 +1,7 @@
 // --- Relationship Type Display Names ---
 const relationshipDisplayNames = {
-    AS_DOCUMENT: "Government Publication",
-    AMENDS: "Amendment",
+    AS_DOCUMENT: "Published by Government",
+    AMENDS: "Amends",
     REFERS_TO: "Refers To",
     REFERENCES: "References",
     AFFECTS: "Affects",
