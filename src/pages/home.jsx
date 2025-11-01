@@ -578,25 +578,25 @@ const Home = () => {
     if (apiData) {
       const mappedStats = [
         {
-          icon: <FileText className="w-8 h-8 text-gray-800" />,
+          icon: <FileText className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Total Documents",
           value: apiData.total_docs?.toLocaleString() || "0",
           description: "Archived files",
         },
         {
-          icon: <Globe className="w-8 h-8 text-gray-800" />,
+          icon: <Globe className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Available Languages",
           value: "languages",
           description: "Supported formats",
         },
         {
-          icon: <LayoutList className="w-8 h-8 text-gray-800" />,
+          icon: <LayoutList className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Available Types",
           value: "types",
           description: "Click to search with types"
         },
         {
-          icon: <Calendar className="w-8 h-8 text-gray-800" />,
+          icon: <Calendar className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Years Covered",
           value: `${apiData.years_covered?.from || ""} - ${
             apiData.years_covered?.to || ""
@@ -604,7 +604,7 @@ const Home = () => {
           description: "Date range",
         },
         {
-          icon: <Search className="w-8 h-8 text-gray-800" />,
+          icon: <Search className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Search Criteria",
           value: "criteria",
           description: "Click to add search criteria",
@@ -1017,7 +1017,7 @@ const Home = () => {
                 {loading && currentUrlQuery && (
                   <div className="flex justify-center items-center py-12">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className="w-8 h-8 border-2 dark:border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
+                      <div className="w-8 h-8 border-2 dark:border-gray-600 dark:border-t-cyan-400 border-t-cyan-400 rounded-full animate-spin"></div>
                       {/* <p className="dark:text-gray-400 text-gray-600 font-medium">Searching archives...</p> */}
                     </div>
                   </div>
@@ -1079,7 +1079,7 @@ const Home = () => {
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r dark:border-gray-800 border-gray-300 scrollbar-thin dark:scrollbar-track-gray-900 scrollbar-track-gray-200 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white shadow-2xl overflow-y-auto animate-slideInLeft border-r dark:border-gray-800 border-gray-300 dark:scrollbar-thin dark:scrollbar-track-gray-900 dark:scrollbar-track-gray-200 dark:scrollbar-thumb-cyan-500 dark:hover:scrollbar-thumb-cyan-400 z-50">
           {/* Loading Overlay */}
           {isTracePaneExpanding && (
             <div className="absolute inset-0 flex items-center justify-center z-20 dark:bg-gray-950 bg-white/80 backdrop-blur-sm">

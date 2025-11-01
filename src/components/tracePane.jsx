@@ -21,8 +21,12 @@ import {
 } from "@/components/ui/select";
 
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
+import { useTheme } from "../context/ThemeContext";
 
 const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => {
+  // --- Theme Context ---
+  const { isDark } = useTheme();
+
   // --- State Variables ---
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -61,7 +65,8 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
   const relationshipConfig = {
     AS_DOCUMENT: {
       allias: "Government Publication",
-      color: "#06B6D4", // Cyan
+      color: "#06B6D4", // Cyan (dark theme)
+      colorLight: "#22D3EE", // Lighter cyan-400 for light theme
       textColor: "#0E7490",
       bgColor: "bg-cyan-50",
       angle: 0, // Right (0 degrees)
@@ -69,7 +74,8 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
     },
     AMENDS: {
       allias: "Amendment",
-      color: "#14B8A6", // Teal
+      color: "#14B8A6", // Teal (dark theme)
+      colorLight: "#2DD4BF", // Lighter teal-400 for light theme
       textColor: "#0F766E",
       bgColor: "bg-teal-50",
       angle: 90, // Top
@@ -77,7 +83,8 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
     },
     REFERS_TO: {
       allias: "Refers To",
-      color: "#6366F1", // Indigo
+      color: "#6366F1", // Indigo (dark theme)
+      colorLight: "#818CF8", // Lighter indigo-400 for light theme
       textColor: "#4338CA",
       bgColor: "bg-indigo-50",
       angle: 180, // Left
@@ -89,13 +96,19 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
     // Default configuration for unknown relationship types
     const defaultConfig = {
       allias: relationshipType || "Unknown",
-      color: "#8B5CF6", // Purple as default
+      color: "#8B5CF6", // Purple as default (dark theme)
+      colorLight: "#A78BFA", // Lighter violet-400 for light theme
       textColor: "#6D28D9",
       bgColor: "bg-purple-50",
       angle: 45, // Default angle
       angleRange: [15, 75], // Default range
     };
-    return relationshipConfig[relationshipType] || defaultConfig;
+    const config = relationshipConfig[relationshipType] || defaultConfig;
+    // Return the appropriate color based on theme
+    return {
+      ...config,
+      color: isDark ? config.color : config.colorLight,
+    };
   };
 
   // --- Utility Functions ---
@@ -830,15 +843,15 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
       >
         <div
           className={`
-          dark:bg-gray-900 bg-gray-100 rounded-full border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
+          dark:bg-gray-900 bg-white rounded-full border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
           flex flex-col items-center justify-center
           ${isGovNode ? "p-4" : "p-3"}
           ${
             node.isRoot
-              ? "border-cyan-500 hover:scale-[1.03] dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-200 to-gray-100"
+              ? "border-cyan-400 hover:scale-[1.03] dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 to-white"
               : isSelected
-              ? "border-cyan-500 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10"
-              : "dark:border-gray-600 border-gray-400 hover:scale-[1.03] dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-200 to-gray-100"
+              ? "border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10"
+              : "dark:border-gray-600 border-gray-300 hover:scale-[1.03] dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 to-white"
           }
           ${isExpanded ? "ring-2 ring-cyan-400/50 scale-[1.03]" : ""}
           ${isSelected ? "ring-4 ring-cyan-400 shadow-2xl scale-[1.05]" : ""}
@@ -874,7 +887,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
           <div className={`flex flex-col items-center justify-center ${isGovNode ? "text-center" : ""}`}>
             <div
               className={`font-medium text-xs text-center ${
-                isSelected ? "text-cyan-200" : "dark:text-white text-gray-900"
+                isSelected ? "dark:text-cyan-200 text-cyan-400" : "dark:text-white text-gray-700"
               }`}
               style={{
                 maxWidth: NODE_DIAMETER - 20, // Account for padding
@@ -915,7 +928,7 @@ return (
             : isFullscreen 
               ? "top-16 left-0 right-0 bottom-0" 
               : "right-0 top-16 h-[calc(100vh-4rem)] w-full sm:w-2/3") +
-          " dark:bg-gray-950 bg-white shadow-2xl z-50 animate-slideIn flex flex-col border dark:border-gray-800 border-gray-300"
+          " dark:bg-gray-950 bg-white z-50 animate-slideIn flex flex-col border dark:border-gray-800 border-gray-300"
         }
         ref={containerRef}
       >
@@ -970,22 +983,33 @@ return (
                 </div>
               )}
 
-              <div // <--- MODIFIED: Apply opacity and transition here
+              <div
                 className={`absolute inset-0 ${
                   isDraggingCanvas ? "cursor-grabbing" : "cursor-grab"
-                }`}
-                style={{
-                  backgroundImage:
-                    "radial-gradient(circle, #374151 1px, transparent 1px)",
-                  backgroundSize: "25px 25px",
-                  // NEW: Apply dimming effect
-                  opacity: isExpanding ? 0.4 : 1, // <--- ADD THIS LINE
-                  transition: "opacity 0.3s ease-in-out", // <--- ADD THIS LINE
-                }}
+                } ${
+                  isExpanding ? "opacity-40" : "opacity-100"
+                } transition-opacity duration-300`}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
               >
+                {/* Grid Background - Different for light/dark theme */}
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage: "radial-gradient(circle, #374151 1px, transparent 1px)",
+                    backgroundSize: "25px 25px",
+                  }}
+                >
+                </div>
+                <div 
+                  className="absolute inset-0 pointer-events-none dark:hidden"
+                  style={{
+                    backgroundImage: "radial-gradient(circle, #D1D5DB 1px, transparent 1px)",
+                    backgroundSize: "25px 25px",
+                  }}
+                >
+                </div>
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
                   <defs>
                     {/* Arrow marker definitions for different relationship types */}
@@ -1205,7 +1229,7 @@ return (
                               y={-labelHeight / 2}
                               width={labelWidth}
                               height={labelHeight}
-                              fill="#1e293b"
+                              fill={isDark ? "#1e293b" : "#ffffff"}
                               stroke={relStyle.color}
                               strokeWidth="1.5"
                               rx="4"
@@ -1254,24 +1278,24 @@ return (
           )}
 
           {/* Controls */}
-          <div className="controls-panel absolute bottom-4 right-4 flex flex-col gap-2 dark:bg-gray-900 bg-gray-100/90 backdrop-blur-sm rounded-xl shadow-2xl border dark:border-gray-700 border-gray-300 p-2">
+          <div className="controls-panel absolute bottom-4 right-4 flex flex-col gap-2 dark:bg-gray-900 bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl border dark:border-gray-700 border-gray-300 p-2">
             <button
               onClick={handleZoomIn}
-              className="p-2 dark:hover:dark:bg-gray-800 bg-gray-200/50 hover:bg-gray-200/50 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-700 hover:text-cyan-400"
+              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               title="Zoom In"
             >
               <ZoomIn className="w-5 h-5" />
             </button>
             <button
               onClick={handleZoomOut}
-              className="p-2 dark:hover:dark:bg-gray-800 bg-gray-200/50 hover:bg-gray-200/50 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-700 hover:text-cyan-400"
+              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               title="Zoom Out"
             >
               <ZoomOut className="w-5 h-5" />
             </button>
             <button
               onClick={handleResetView}
-              className="p-2 dark:hover:dark:bg-gray-800 bg-gray-200/50 hover:bg-gray-200/50 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-700 hover:text-cyan-400"
+              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               title="Reset View"
             >
               <Shrink className="w-5 h-5" />
@@ -1281,8 +1305,8 @@ return (
                 onClick={() => setIsIsolationMode((prev) => !prev)}
                 className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
                   isIsolationMode
-                    ? "bg-cyan-500 dark:text-white text-gray-900 hover:bg-cyan-600"
-                    : "dark:hover:dark:bg-gray-800 bg-gray-200/50 hover:bg-gray-200/50 dark:text-gray-300 text-gray-700 hover:text-cyan-400"
+                    ? "bg-cyan-500 dark:text-white text-white hover:bg-cyan-600"
+                    : "dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
                 }`}
                 title={
                   isIsolationMode
@@ -1305,10 +1329,10 @@ return (
                   value={relationshipFilter}
                   onValueChange={setRelationshipFilter}
                 >
-                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border dark:border-gray-700 border-gray-300 dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm dark:text-gray-300 text-gray-700">
+                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border dark:border-gray-700 border-gray-300 dark:bg-gray-900/80 bg-white backdrop-blur-sm dark:text-gray-300 text-gray-700">
                   <SelectValue placeholder="All Relationships" />
                 </SelectTrigger>
-                <SelectContent className="dark:bg-gray-800 bg-gray-200 dark:text-gray-300 text-gray-700 font-medium border-none">
+                <SelectContent className="dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 font-medium border-none">
                   <SelectItem
                     value="ALL"
                     className="text-xs hover:cursor-pointer"
@@ -1345,7 +1369,7 @@ return (
                       return (
                         <div key={type} className="flex items-center gap-2">
                           <div
-                            className="w-3 h-3 rounded-full border border-white/20"
+                            className="w-3 h-3 rounded-full dark:border-white/20 border-gray-400/40"
                             style={{ backgroundColor: config.color }}
                           ></div>
                           <span className="text-xs font-medium dark:text-gray-300 text-gray-700">

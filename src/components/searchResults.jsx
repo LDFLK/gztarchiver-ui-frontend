@@ -75,7 +75,7 @@ const SearchResults = ({
                   />
                 </button>
                 <div
-                  className={`absolute right-0 top-full mt-1 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
+                  className={`absolute right-0 top-full mt-1 dark:bg-gray-900/90 bg-white/90 backdrop-blur-sm border dark:border-gray-700 border-gray-200 rounded-lg shadow-lg z-10 transition-all duration-200 origin-top ${
                     showLimitDropdown
                       ? "opacity-100 scale-100"
                       : "opacity-0 scale-95 pointer-events-none"
@@ -85,10 +85,10 @@ const SearchResults = ({
                     <button
                       key={option}
                       onClick={() => handleLimitChange(option)}
-                      className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-700/50 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      className={`block w-full text-left px-3 py-2 text-xs dark:hover:bg-gray-700/50 hover:bg-gray-300 hover:cursor-pointer transition-colors first:rounded-t-lg last:rounded-b-lg ${
                         option === limit
-                          ? "bg-cyan-500/10 text-cyan-400"
-                          : "text-gray-300"
+                          ? "dark:bg-cyan-500/10 bg-gray-300 dark:text-cyan-400 text-gray-800"
+                          : "dark:text-gray-300 text-gray-800"
                       }`}
                     >
                       {option} per page
