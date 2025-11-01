@@ -1079,7 +1079,7 @@ const Home = () => {
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white shadow-2xl overflow-y-auto animate-slideInLeft border-r dark:border-gray-800 border-gray-300 dark:scrollbar-thin dark:scrollbar-track-gray-900 dark:scrollbar-track-gray-200 dark:scrollbar-thumb-cyan-500 dark:hover:scrollbar-thumb-cyan-400 z-50">
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white shadow-2xl overflow-y-auto animate-slideInLeft dark:border-gray-800 scrollbar-thin dark:scrollbar-track-gray-900 dark:scrollbar-track-gray-200 dark:scrollbar-thumb-cyan-500 dark:hover:scrollbar-thumb-cyan-400 z-50">
           {/* Loading Overlay */}
           {isTracePaneExpanding && (
             <div className="absolute inset-0 flex items-center justify-center z-20 dark:bg-gray-950 bg-white/80 backdrop-blur-sm">
@@ -1263,34 +1263,56 @@ const Home = () => {
           animation: slideInLeft 0.3s ease-out;
         }
 
-        /* Custom Scrollbar Styling */
+        /* Custom Scrollbar Styling - Light Theme (default) */
         .scrollbar-thin::-webkit-scrollbar {
           width: 8px;
         }
 
         .scrollbar-thin::-webkit-scrollbar-track {
-          background: #111827;
+          background: #f3f4f6; /* gray-100 */
           border-radius: 4px;
         }
 
         .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: #06b6d4;
+          background: #9ca3af; /* gray-400 */
           border-radius: 4px;
           transition: background-color 0.2s ease;
         }
 
         .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-          background: #0891b2;
+          background: #6b7280; /* gray-500 */
         }
 
         .scrollbar-thin::-webkit-scrollbar-thumb:active {
-          background: #0e7490;
+          background: #4b5563; /* gray-600 */
         }
 
-        /* Firefox scrollbar styling */
+        /* Dark Theme Scrollbar */
+        .dark .scrollbar-thin::-webkit-scrollbar-track {
+          background: #111827; /* gray-900 */
+        }
+
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #06b6d4; /* cyan-500 */
+        }
+
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #0891b2; /* cyan-600 */
+        }
+
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb:active {
+          background: #0e7490; /* cyan-700 */
+        }
+
+        /* Firefox scrollbar styling - Light Theme */
         .scrollbar-thin {
           scrollbar-width: thin;
-          scrollbar-color: #06b6d4 #111827;
+          scrollbar-color: #9ca3af #f3f4f6; /* gray-400 gray-100 */
+        }
+
+        /* Firefox scrollbar styling - Dark Theme */
+        .dark .scrollbar-thin {
+          scrollbar-color: #06b6d4 #111827; /* cyan-500 gray-900 */
         }
       `}</style>
     </>
