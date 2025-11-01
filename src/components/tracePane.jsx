@@ -21,8 +21,12 @@ import {
 } from "@/components/ui/select";
 
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
+import { useTheme } from "../context/ThemeContext";
 
-const TracePane = ({ documentId, onClose, onNodeSelect }) => {
+const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => {
+  // --- Theme Context ---
+  const { isDark } = useTheme();
+
   // --- State Variables ---
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -33,8 +37,12 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isExpanding, setIsExpanding] = useState(false);
+  const [isFetchingNodeData, setIsFetchingNodeData] = useState(false); // Loading state for single click fetch
   const [isIsolationMode, setIsIsolationMode] = useState(false);
   const [relationshipFilter, setRelationshipFilter] = useState("ALL");
+
+  // Cache for fetched node connections to avoid duplicate API calls
+  const nodeConnectionsCache = useRef(new Map());
 
   // Canvas Dragging State
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
@@ -56,16 +64,18 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
   // --- Relationship Type Configuration ---
   const relationshipConfig = {
     AS_DOCUMENT: {
-      allias: "Government Publication",
-      color: "#06B6D4", // Cyan
+      allias: "Published by Government",
+      color: "#06B6D4", // Cyan (dark theme)
+      colorLight: "#22D3EE", // Lighter cyan-400 for light theme
       textColor: "#0E7490",
       bgColor: "bg-cyan-50",
       angle: 0, // Right (0 degrees)
       angleRange: [-30, 30], // Wider spread
     },
     AMENDS: {
-      allias: "Amendment",
-      color: "#14B8A6", // Teal
+      allias: "Amends",
+      color: "#14B8A6", // Teal (dark theme)
+      colorLight: "#2DD4BF", // Lighter teal-400 for light theme
       textColor: "#0F766E",
       bgColor: "bg-teal-50",
       angle: 90, // Top
@@ -73,7 +83,8 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     },
     REFERS_TO: {
       allias: "Refers To",
-      color: "#6366F1", // Indigo
+      color: "#6366F1", // Indigo (dark theme)
+      colorLight: "#818CF8", // Lighter indigo-400 for light theme
       textColor: "#4338CA",
       bgColor: "bg-indigo-50",
       angle: 180, // Left
@@ -85,13 +96,19 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     // Default configuration for unknown relationship types
     const defaultConfig = {
       allias: relationshipType || "Unknown",
-      color: "#8B5CF6", // Purple as default
+      color: "#8B5CF6", // Purple as default (dark theme)
+      colorLight: "#A78BFA", // Lighter violet-400 for light theme
       textColor: "#6D28D9",
       bgColor: "bg-purple-50",
       angle: 45, // Default angle
       angleRange: [15, 75], // Default range
     };
-    return relationshipConfig[relationshipType] || defaultConfig;
+    const config = relationshipConfig[relationshipType] || defaultConfig;
+    // Return the appropriate color based on theme
+    return {
+      ...config,
+      color: isDark ? config.color : config.colorLight,
+    };
   };
 
   // --- Utility Functions ---
@@ -181,6 +198,9 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
 
       // Reset isolation mode on new document load
       setIsIsolationMode(false);
+      
+      // Clear cache when document changes to avoid stale data
+      nodeConnectionsCache.current.clear();
 
       try {
         const apiUrl = window?.configs?.apiUrl ? window.configs.apiUrl : "/";
@@ -223,6 +243,14 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       fetchDocument();
     }
   }, [documentId, calculateCenter]);
+
+  // Notify parent component when any loading state changes (single click fetch or expansion)
+  useEffect(() => {
+    if (onExpandingChange) {
+      // Show loading if either expanding or fetching node data for single click
+      onExpandingChange(isExpanding || isFetchingNodeData);
+    }
+  }, [isExpanding, isFetchingNodeData, onExpandingChange]);
 
   // --- API Simulation/Integration ---
 
@@ -303,15 +331,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     setSelectedNodeId(nodeId);
     centerNodeWithAnimation(nodeId);
 
-    // ********** FIX: Move data fetch and onNodeSelect here **********
-    const connectedDocs = await fetchConnectedDocuments(nodeId);
-
-    if (onNodeSelect && clickedNode) {
-      onNodeSelect({
-        node: clickedNode,
-        connections: connectedDocs || [],
-      });
-    }
+    // Check if collapsing first
     if (expandedNodes.has(nodeId)) {
       // ✅ Collapse this node:
       //   - If it's the root: remove all descendants + edges.
@@ -393,6 +413,24 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
     // 4. Expansion Logic Starts - ACTIVATE LOADING STATE HERE
     // ----------------------------------------------------
     setIsExpanding(true); // <-- START LOADING/DIMMING STATE
+
+    // Check cache first - if data was already fetched on single click, reuse it
+    let connectedDocs = nodeConnectionsCache.current.get(nodeId);
+    
+    if (!connectedDocs) {
+      // Data not cached, fetch it
+      connectedDocs = await fetchConnectedDocuments(nodeId);
+      // Cache the result for future use
+      nodeConnectionsCache.current.set(nodeId, connectedDocs || []);
+    }
+
+    // Update info pane with fetched data
+    if (onNodeSelect && clickedNode) {
+      onNodeSelect({
+        node: clickedNode,
+        connections: connectedDocs || [],
+      });
+    }
 
     // Expand node (Mark it as expanded regardless of connections)
     setExpandedNodes((prev) => new Set([...prev, nodeId]));
@@ -530,7 +568,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       setNodes((prev) => prev.map((n) => ({ ...n, isNew: false })));
       setEdges((prev) => prev.map((e) => ({ ...e, isNew: false })));
       setIsExpanding(false); // <-- STOP LOADING AFTER ANIMATION
-    }, 50);
+    }); 
   };
 
   const handleNodeMouseUp = (e, nodeId) => {
@@ -567,7 +605,21 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
         // 🔥 Fetch connected documents to update info pane
         const clickedNode = nodes.find((n) => n.id === nodeId);
         if (onNodeSelect && clickedNode) {
-          const connectedDocs = await fetchConnectedDocuments(nodeId);
+          // Check cache first
+          let connectedDocs = nodeConnectionsCache.current.get(nodeId);
+          
+          if (!connectedDocs) {
+            // Data not cached, fetch it
+            setIsFetchingNodeData(true);
+            try {
+              connectedDocs = await fetchConnectedDocuments(nodeId);
+              // Cache the result
+              nodeConnectionsCache.current.set(nodeId, connectedDocs || []);
+            } finally {
+              setIsFetchingNodeData(false);
+            }
+          }
+          
           onNodeSelect({
             node: clickedNode,
             connections: connectedDocs || [],
@@ -580,19 +632,6 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
 
     setDraggedNodeId(null);
   };
-
-  // // ⭐ NEW HANDLER: Isolation Mode Toggle
-  // const handleIsolationToggle = (e, nodeId) => {
-  //   e.stopPropagation(); // Prevent the main node click logic
-  //   if (selectedNodeId === nodeId) {
-  //     setIsIsolationMode((prev) => !prev);
-  //   } else {
-  //     // If they click the isolation toggle on a non-selected node,
-  //     // select it first, then enable isolation.
-  //     handleNodeClick(nodeId);
-  //     setIsIsolationMode(true);
-  //   }
-  // };
 
   // --- Zoom and View Handlers ---
 
@@ -791,15 +830,15 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
       >
         <div
           className={`
-          bg-gray-900 rounded-full border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
+          dark:bg-gray-900 bg-white rounded-full border-2 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl
           flex flex-col items-center justify-center
           ${isGovNode ? "p-4" : "p-3"}
           ${
             node.isRoot
-              ? "border-cyan-500 hover:scale-[1.03] bg-gradient-to-br from-gray-800 to-gray-900"
+              ? "border-cyan-400 hover:scale-[1.03] dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 to-white"
               : isSelected
-              ? "border-cyan-500 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10"
-              : "border-gray-600 hover:scale-[1.03] bg-gradient-to-br from-gray-800 to-gray-900"
+              ? "border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10"
+              : "dark:border-gray-600 border-gray-300 hover:scale-[1.03] dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 to-white"
           }
           ${isExpanded ? "ring-2 ring-cyan-400/50 scale-[1.03]" : ""}
           ${isSelected ? "ring-4 ring-cyan-400 shadow-2xl scale-[1.05]" : ""}
@@ -835,7 +874,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect }) => {
           <div className={`flex flex-col items-center justify-center ${isGovNode ? "text-center" : ""}`}>
             <div
               className={`font-medium text-xs text-center ${
-                isSelected ? "text-cyan-200" : "text-white"
+                isSelected ? "dark:text-cyan-200 text-cyan-400" : "dark:text-white text-gray-700"
               }`}
               style={{
                 maxWidth: NODE_DIAMETER - 20, // Account for padding
@@ -876,21 +915,21 @@ return (
             : isFullscreen 
               ? "top-16 left-0 right-0 bottom-0" 
               : "right-0 top-16 h-[calc(100vh-4rem)] w-full sm:w-2/3") +
-          " bg-gray-950 shadow-2xl z-50 animate-slideIn flex flex-col border border-gray-800"
+          " dark:bg-gray-950 bg-white z-50 animate-slideIn flex flex-col border dark:border-gray-800 border-gray-300"
         }
         ref={containerRef}
       >
 
         {/* Canvas Area */}
         <div
-          className="flex-1 relative bg-gray-950 overflow-hidden"
+          className="flex-1 relative dark:bg-gray-950 bg-white overflow-hidden"
           onMouseLeave={handleMouseUp}
         >
           {/* Floating Control Buttons */}
           <div className="absolute top-7 right-4 z-10 flex items-center gap-2">
             <button
               onClick={toggleFullscreen}
-              className="sm:block hidden p-2 text-gray-400 hover:text-cyan-400 hover:cursor-pointer transition-colors duration-200 rounded-lg hover:bg-gray-800/50 bg-gray-900/80 backdrop-blur-sm border border-gray-700"
+              className="sm:block hidden p-2 dark:text-gray-400 text-gray-600 hover:text-cyan-400 hover:cursor-pointer transition-colors duration-200 rounded-lg dark:hover:bg-gray-800/50 hover:bg-gray-200/50 dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm border dark:border-gray-700 border-gray-300"
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? (
@@ -901,7 +940,7 @@ return (
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-red-400 transition-colors hover:cursor-pointer rounded-lg hover:bg-gray-800/50 bg-gray-900/80 backdrop-blur-sm border border-gray-700"
+              className="p-2 dark:text-gray-400 text-gray-600 hover:text-red-400 transition-colors hover:cursor-pointer rounded-lg dark:hover:bg-gray-800/50 hover:bg-gray-200/50 dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm border dark:border-gray-700 border-gray-300"
               aria-label="Close panel"
             >
               <X className="w-6 h-6" />
@@ -911,42 +950,53 @@ return (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <div className="inline-block w-6 h-6 sm:w-8 sm:h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
-                <p className="text-sm text-gray-400 mt-2">Loading connections...</p>
+                <p className="text-sm dark:text-gray-400 text-gray-600 mt-2">Loading connections...</p>
               </div>
             </div>
           ) : error ? (
             <div className="absolute inset-0 flex items-center justify-center p-4 text-center">
               <CircleAlert className="w-5 h-5 font-thin me-2 text-red-400" />
-              <p className="text-lg font-thin text-gray-300">{error}</p>
+              <p className="text-lg font-thin dark:text-gray-300 text-gray-700">{error}</p>
             </div>
           ) : (
             <>
               {/* NEW: Expansion Loading Spinner Overlay */}
               {isExpanding && ( // <--- ADD THIS BLOCK
-                <div className="absolute inset-0 flex items-center justify-center z-20 bg-gray-950/80 backdrop-blur-sm">
+                <div className="absolute inset-0 flex items-center justify-center z-20 dark:bg-gray-950/80 bg-white/80 backdrop-blur-sm">
                   <div className="text-center">
                     <div className="inline-block w-6 h-6 sm:w-8 sm:h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-400 mt-2">Expanding connections...</p>
+                    <p className="text-sm dark:text-gray-400 text-gray-600 mt-2">Expanding connections...</p>
                   </div>
                 </div>
               )}
 
-              <div // <--- MODIFIED: Apply opacity and transition here
+              <div
                 className={`absolute inset-0 ${
                   isDraggingCanvas ? "cursor-grabbing" : "cursor-grab"
-                }`}
-                style={{
-                  backgroundImage:
-                    "radial-gradient(circle, #374151 1px, transparent 1px)",
-                  backgroundSize: "25px 25px",
-                  // NEW: Apply dimming effect
-                  opacity: isExpanding ? 0.4 : 1, // <--- ADD THIS LINE
-                  transition: "opacity 0.3s ease-in-out", // <--- ADD THIS LINE
-                }}
+                } ${
+                  isExpanding ? "opacity-40" : "opacity-100"
+                } transition-opacity duration-300`}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
               >
+                {/* Grid Background - Different for light/dark theme */}
+                <div 
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    backgroundImage: "radial-gradient(circle, #374151 1px, transparent 1px)",
+                    backgroundSize: "25px 25px",
+                  }}
+                >
+                </div>
+                <div 
+                  className="absolute inset-0 pointer-events-none dark:hidden"
+                  style={{
+                    backgroundImage: "radial-gradient(circle, #D1D5DB 1px, transparent 1px)",
+                    backgroundSize: "25px 25px",
+                  }}
+                >
+                </div>
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
                   <defs>
                     {/* Arrow marker definitions for different relationship types */}
@@ -1145,9 +1195,7 @@ return (
                             markerStart={arrowMarkerStart}
                           />
 
-                          {/* Dots removed - arrows now clearly show direction */}
 
-                          {/* Relationship Label - rotated to align with line */}
                           <g
                             transform={`translate(${midX}, ${midY}) rotate(${labelAngle})`}
                           >
@@ -1166,7 +1214,7 @@ return (
                               y={-labelHeight / 2}
                               width={labelWidth}
                               height={labelHeight}
-                              fill="#1e293b"
+                              fill={isDark ? "#1e293b" : "#ffffff"}
                               stroke={relStyle.color}
                               strokeWidth="1.5"
                               rx="4"
@@ -1215,24 +1263,24 @@ return (
           )}
 
           {/* Controls */}
-          <div className="controls-panel absolute bottom-4 right-4 flex flex-col gap-2 bg-gray-900/90 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700 p-2">
+          <div className="controls-panel absolute bottom-4 right-4 flex flex-col gap-2 dark:bg-gray-900 bg-white/90 backdrop-blur-sm rounded-xl shadow-2xl border dark:border-gray-700 border-gray-300 p-2">
             <button
               onClick={handleZoomIn}
-              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors hover:cursor-pointer text-gray-300 hover:text-cyan-400"
+              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               title="Zoom In"
             >
               <ZoomIn className="w-5 h-5" />
             </button>
             <button
               onClick={handleZoomOut}
-              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors hover:cursor-pointer text-gray-300 hover:text-cyan-400"
+              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               title="Zoom Out"
             >
               <ZoomOut className="w-5 h-5" />
             </button>
             <button
               onClick={handleResetView}
-              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors hover:cursor-pointer text-gray-300 hover:text-cyan-400"
+              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               title="Reset View"
             >
               <Shrink className="w-5 h-5" />
@@ -1242,8 +1290,8 @@ return (
                 onClick={() => setIsIsolationMode((prev) => !prev)}
                 className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
                   isIsolationMode
-                    ? "bg-cyan-500 text-white hover:bg-cyan-600"
-                    : "hover:bg-gray-800/50 text-gray-300 hover:text-cyan-400"
+                    ? "bg-cyan-500 dark:text-white text-white hover:bg-cyan-600"
+                    : "dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
                 }`}
                 title={
                   isIsolationMode
@@ -1266,10 +1314,10 @@ return (
                   value={relationshipFilter}
                   onValueChange={setRelationshipFilter}
                 >
-                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border border-gray-700 bg-gray-900/80 backdrop-blur-sm text-gray-300">
+                  <SelectTrigger className="w-full text-xs font-medium rounded-lg px-3 py-4.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 hover:cursor-pointer border dark:border-gray-700 border-gray-300 dark:bg-gray-900/80 bg-white backdrop-blur-sm dark:text-gray-300 text-gray-700">
                   <SelectValue placeholder="All Relationships" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 text-gray-300 font-medium border-none">
+                <SelectContent className="dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 font-medium border-none">
                   <SelectItem
                     value="ALL"
                     className="text-xs hover:cursor-pointer"
@@ -1306,10 +1354,10 @@ return (
                       return (
                         <div key={type} className="flex items-center gap-2">
                           <div
-                            className="w-3 h-3 rounded-full border border-white/20"
+                            className="w-3 h-3 rounded-full dark:border-white/20 border-gray-400/40"
                             style={{ backgroundColor: config.color }}
                           ></div>
-                          <span className="text-xs font-medium text-gray-300">
+                          <span className="text-xs font-medium dark:text-gray-300 text-gray-700">
                             {config.allias || type}
                           </span>
                         </div>
@@ -1324,7 +1372,7 @@ return (
       {showTooltip && (
         <div
           className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-fadeInOut
-               bg-gray-900 text-white px-5 py-4 rounded-lg shadow-lg"
+               dark:bg-gray-900 bg-white dark:text-white text-gray-700 px-5 py-4 rounded-lg shadow-lg"
         >
           <p className="font-medium">This is the origin node of connections</p>
           <p className="text-sm font-medium">Click other nodes to play</p>
@@ -1332,7 +1380,7 @@ return (
       )}
 
         {/* Footer Info */}
-        <div className="bg-gray-900/80 backdrop-blur-sm border-t border-gray-700 p-3 text-sm font-thin text-gray-300 flex justify-between">
+        <div className="dark:bg-gray-900/80 bg-gray-100/80 backdrop-blur-sm border-t dark:border-gray-700 border-gray-300 p-3 text-sm font-thin dark:text-gray-300 text-gray-700 flex justify-between">
           <span>
             <span className="font-light text-cyan-400">{nodes.length}</span>{" "}
             document{nodes.length !== 1 ? "s" : ""} •
@@ -1342,11 +1390,11 @@ return (
             connection{edges.length !== 1 ? "s" : ""}
           </span>
           <div>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs dark:text-gray-400 text-gray-600">
               Click nodes to expand and explore connections
             </span>
             <span> • </span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs dark:text-gray-400 text-gray-600">
               Drag nodes or background to interact
             </span>
           </div>

@@ -29,6 +29,7 @@ import {
 
 import SkeletonCard from "../components/skeletonCard";
 import ErrorCard from "../components/errorCard";
+import ThemeToggle from "../components/ThemeToggle";
 
 import { getReadableRelationshipName } from "../utils/relationshipUtils";
 
@@ -42,6 +43,7 @@ const Home = () => {
   const [searchCriteria, setSearchCriteria] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
+  const [isTracePaneExpanding, setIsTracePaneExpanding] = useState(false);
   const [animatedStats, setAnimatedStats] = useState({
     totalDocs: 0,
     availableDocs: 0,
@@ -143,6 +145,10 @@ const Home = () => {
     setSelectedNodeInfo(nodeData);
   };
 
+  const handleExpandingChange = (isExpanding) => {
+    setIsTracePaneExpanding(isExpanding);
+  };
+
   // ADD THIS useEffect to initialize from URL
   useEffect(() => {
     // Read document ID from URL on mount
@@ -172,16 +178,15 @@ const Home = () => {
     const filters = [];
     const trimmedQuery = query.trim();
 
-    // Parse other patterns that might not be in quick search
-    const dateMatches = trimmedQuery.match(/date:(\d{4}(?:-\d{2}){0,2})/gi);
+    // Parse date patterns (date:YYYY, date:YYYY-MM, date:YYYY-MM-DD)
+    const dateMatches = trimmedQuery.match(/date:\d{4}(?:-\d{2}){0,2}/gi);
     if (dateMatches) {
       dateMatches.forEach((match) => {
-        const dateValue = match.split(":")[1];
-        // Only add if not already in filters
         if (!filters.some((f) => f.query === match)) {
+          const dateValue = match.split(":")[1];
           filters.push({
             id: `date-${dateValue}`,
-            label: dateValue,
+            label: `Date: ${dateValue}`,
             color: "bg-blue-50 text-blue-700 border-blue-200",
             query: match,
           });
@@ -199,6 +204,54 @@ const Home = () => {
             id: `id-${idValue}`,
             label: `ID: ${idValue}`,
             color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Type patterns (type:XXXX)
+    const typeMatches = trimmedQuery.match(/type:[\w_-]+/gi);
+    if (typeMatches) {
+      typeMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const typeValue = match.split(":")[1];
+          filters.push({
+            id: `type-${typeValue}`,
+            label: `Type: ${typeValue.replace(/_/g, " ")}`,
+            color: "bg-purple-50 text-purple-700 border-purple-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Source patterns (source:XXXX)
+    const sourceMatches = trimmedQuery.match(/source:[\w.]+/gi);
+    if (sourceMatches) {
+      sourceMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const sourceValue = match.split(":")[1];
+          filters.push({
+            id: `source-${sourceValue}`,
+            label: `Source: ${sourceValue}`,
+            color: "bg-orange-50 text-orange-700 border-orange-200",
+            query: match,
+          });
+        }
+      });
+    }
+
+    // Available patterns (available:XXXX)
+    const availableMatches = trimmedQuery.match(/available:[\w]+/gi);
+    if (availableMatches) {
+      availableMatches.forEach((match) => {
+        if (!filters.some((f) => f.query === match)) {
+          const availableValue = match.split(":")[1];
+          filters.push({
+            id: `available-${availableValue}`,
+            label: `Available: ${availableValue}`,
+            color: "bg-green-50 text-green-700 border-green-200",
             query: match,
           });
         }
@@ -525,25 +578,25 @@ const Home = () => {
     if (apiData) {
       const mappedStats = [
         {
-          icon: <FileText className="w-8 h-8 text-gray-800" />,
+          icon: <FileText className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Total Documents",
           value: apiData.total_docs?.toLocaleString() || "0",
           description: "Archived files",
         },
         {
-          icon: <Globe className="w-8 h-8 text-gray-800" />,
+          icon: <Globe className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Available Languages",
           value: "languages",
           description: "Supported formats",
         },
         {
-          icon: <LayoutList className="w-8 h-8 text-gray-800" />,
+          icon: <LayoutList className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Available Types",
           value: "types",
           description: "Click to search with types"
         },
         {
-          icon: <Calendar className="w-8 h-8 text-gray-800" />,
+          icon: <Calendar className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Years Covered",
           value: `${apiData.years_covered?.from || ""} - ${
             apiData.years_covered?.to || ""
@@ -551,7 +604,7 @@ const Home = () => {
           description: "Date range",
         },
         {
-          icon: <Search className="w-8 h-8 text-gray-800" />,
+          icon: <Search className="w-8 h-8 dark:text-gray-800 text-gray-600" />,
           title: "Search Criteria",
           value: "criteria",
           description: "Click to add search criteria",
@@ -651,8 +704,13 @@ const Home = () => {
 
   return (
     <>
+      {/* Theme Toggle - Fixed to Right Side, Vertically Centered */}
+      <div className="fixed right-0 sm:top-1/2 top-30 -translate-y-1/2 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Modern Tech Archive Background */}
-      <div className="min-h-screen bg-gray-950 relative overflow-hidden">
+      <div className="min-h-screen dark:bg-gray-950 bg-white relative overflow-hidden">
         {/* Tech Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
         
@@ -668,17 +726,17 @@ const Home = () => {
         } ${selectedDocumentId ? "w-1/3 max-w-none h-screen overflow-y-auto scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400" : ""}`}
         >
           {/* Header Section */}
-           <header className="fixed top-0 left-0 right-0 z-1000 border-b border-gray-800/50 bg-gray-950/95 backdrop-blur-sm transition-all duration-700 ease-out">
+           <header className="fixed top-0 left-0 right-0 z-1000 dark:border-b border-b dark:border-gray-800 dark:bg-gray-950 bg-white/95 backdrop-blur-sm transition-all duration-700 ease-out">
             <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   {/* <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
-                    <FileArchive className="w-6 h-6 text-white" />
+                    <FileArchive className="w-6 h-6 dark:text-white text-gray-900" />
                   </div> */}
                   <div>
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
-                    {/* <p className="text-xs text-gray-400">Sri Lankan Government Documents Archive</p> */}
+                    {/* <p className="text-xs dark:text-gray-400 text-gray-600">Sri Lankan Government Documents Archive</p> */}
                   </div>
                 </div>
 
@@ -692,7 +750,7 @@ const Home = () => {
                         (apiData?.total_docs?.toLocaleString() || "0")
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Document Entries</div>
+                    <div className="text-xs dark:text-gray-400 text-gray-600">Document Entries</div>
                   </div>
                   
                   {/* Available Docs Count */}
@@ -703,7 +761,7 @@ const Home = () => {
                         (apiData?.available_docs?.toLocaleString() || "0")
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Documents Available</div>
+                    <div className="text-xs dark:text-gray-400 text-gray-600">Documents Available</div>
                   </div>
                   
                   {/* Document Types Count */}
@@ -714,7 +772,7 @@ const Home = () => {
                         ((apiData?.document_types || []).length || 0)
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Document Types</div>
+                    <div className="text-xs dark:text-gray-400 text-gray-600">Document Types</div>
                   </div>
                   
                   {/* Years Range */}
@@ -725,7 +783,7 @@ const Home = () => {
                         `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
                       }
                     </div>
-                    <div className="text-xs text-gray-400">Years Covered</div>
+                    <div className="text-xs dark:text-gray-400 text-gray-600">Years Covered</div>
                   </div>
                 </div>
               </div>
@@ -753,13 +811,13 @@ const Home = () => {
                         : 'scale-100 translate-y-0 opacity-100'
                     }`}
                   >
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold dark:text-white text-gray-700 mb-4 sm:mb-6">
                       Sri Lankan Government
                       <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
                     </h2>
-                    <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
+                    <p className="text-base sm:text-lg md:text-xl dark:text-gray-300 text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
                       Advanced search and analysis platform for government documents, 
                       enabling transparency and data-driven insights.
                     </p>
@@ -770,9 +828,9 @@ const Home = () => {
                 <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2 quick-search-container`}>
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
-                    <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
+                    <div className={`relative dark:bg-gray-900/80 bg-white backdrop-blur-sm dark:border dark:border-gray-800 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
                       <div className="flex items-center">
-                        <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-2 sm:ml-4'}`} />
+                        <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} dark:text-gray-400 text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-2 sm:ml-4'}`} />
                   <input
                     type="text"
                     placeholder="Search documents..."
@@ -780,13 +838,13 @@ const Home = () => {
                           onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
-                          className={`flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
+                          className={`flex-1 bg-transparent dark:text-white text-gray-600 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
                         />
                         <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-1 sm:space-x-2 mr-1 sm:mr-2'}`}>
                           {searchInput && (
                       <button
                         onClick={clearSearch}
-                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors`}
+                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} dark:text-gray-400 text-gray-400 dark:hover:dark:text-white hover:text-gray-900 dark:hover:bg-gray-700 hover:bg-gray-300 rounded-lg transition-colors`}
                       >
                               <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                       </button>
@@ -796,14 +854,14 @@ const Home = () => {
                             className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} rounded-lg transition-colors hover:cursor-pointer ${
                         showQuickSearch
                                 ? "text-cyan-400 bg-cyan-400/10"
-                                : "text-gray-400 hover:text-cyan-300"
+                                : "dark:text-gray-400 text-gray-400 hover:text-cyan-300"
                       }`}
                     >
                             <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                     </button>
                   <button
                     onClick={() => handleSearch(1)}
-                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
+                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 dark:text-white text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
                   >
                     <span>Search</span>
                   </button>
@@ -818,12 +876,12 @@ const Home = () => {
                     <div className="mt-3 sm:mt-4 mb-6 sm:mb-8 transition-all duration-300 opacity-100">
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
-                        <div className={`relative bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
+                        <div className={`relative dark:bg-gray-900 bg-white backdrop-blur-sm dark:border dark:border-gray-800 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
                           <div className="flex items-center justify-between mb-3 sm:mb-4">
-                            <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-base sm:text-lg'} font-semibold text-white`}>Quick Search</h3>
+                            <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-base sm:text-lg'} font-semibold dark:text-white text-gray-700`}>Quick Search</h3>
                             <button
                               onClick={() => setShowQuickSearch(false)}
-                              className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors cursor-pointer p-1"
+                              className="dark:text-gray-400 text-gray-600 dark:hover:dark:text-white hover:text-gray-900 dark:hover:bg-gray-700 hover:bg-gray-300 rounded-lg transition-colors cursor-pointer p-1"
                             >
                               <X className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'}`} />
                             </button>
@@ -831,20 +889,20 @@ const Home = () => {
 
                           {/* Document Types */}
                           <div className="mb-3 sm:mb-4">
-                            <p className="text-xs sm:text-sm text-gray-400 mb-2 font-medium">Document Types:</p>
+                            <p className="text-xs sm:text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Document Types:</p>
                             <div className="flex flex-wrap gap-2">
                               {loading ? (
                                 <>
-                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                  <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
                                   </div>
-                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                  <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
                                   </div>
-                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                  <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
                                   </div>
-                                  <div className="px-3 py-1.5 bg-gray-800/50 rounded-lg animate-pulse">
+                                  <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
                                   </div>
                                 </>
@@ -853,7 +911,7 @@ const Home = () => {
                                   <button
                                     key={index}
                                     onClick={() => handleTypes(type)}
-                                    className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-medium hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                    className="px-1.5 py-1 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium bg-gray-100 text-gray-500 cursor-pointer transition-all duration-200"
                                   >
                                     {type}
                                   </button>
@@ -865,14 +923,14 @@ const Home = () => {
                           </div>
 
                           {/* Search Criteria */}
-                          <div className="border-t border-gray-700 pt-3 pb-3 sm:pt-4">
-                            <p className="text-xs sm:text-sm text-gray-400 mb-2 font-medium">Search Criteria:</p>
+                          <div className="border-t dark:border-gray-700 border-gray-300 pt-3 pb-3 sm:pt-4">
+                            <p className="text-xs sm:text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Search Criteria:</p>
                             <div className="flex flex-wrap gap-2">
                               {["id:", "type:", "date:", "available:", "source:"].map((criteria, index) => (
                                 <button
                                   key={index}
                                   onClick={() => handleCriteria(criteria)}
-                                  className="px-3 py-1.5 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg text-xs sm:text-sm font-mono hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 cursor-pointer transition-all duration-200"
+                                  className="px-1.5 py-1 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium bg-gray-100 text-gray-500 cursor-pointer transition-all duration-200"
                                 >
                                   {criteria}
                                 </button>
@@ -880,13 +938,13 @@ const Home = () => {
                             </div>
                           </div>
 
-                          <div className="border-t border-gray-700 pt-3 sm:pt-4">
-                            <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">Search Examples:</p>
+                          <div className="border-t dark:border-gray-700 border-gray-300 pt-3 sm:pt-4">
+                            <p className="text-xs sm:text-sm dark:text-gray-400 text-gray-600 mb-2 sm:mb-3 font-medium">Search Examples:</p>
                             <div className="flex flex-wrap gap-1.5 sm:gap-2">
                               {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
                                 <span
                                   key={example}
-                                  className="px-2 py-1 sm:px-3 sm:py-1 bg-gray-800 text-gray-300 rounded-full text-xs font-mono"
+                                  className="px-1.5 py-1 dark:bg-gray-800 bg-gray-100 dark:text-gray-300 text-gray-500 rounded-lg text-xs font-medium"
                                 >
                                   {example}
                                 </span>
@@ -904,17 +962,17 @@ const Home = () => {
                     <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mt-3 sm:mt-4 px-2 mb-4 sm:mb-6`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className="text-xs sm:text-sm text-gray-400">Active filters:</span>
+                          <span className="text-xs sm:text-sm dark:text-gray-400 text-gray-600">Active filters:</span>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {activeFilters.map((filter) => (
                           <div
                             key={filter.id}
-                                className="flex items-center space-x-1.5 sm:space-x-2 px-2 py-1 sm:px-3 sm:py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400"
+                                className="flex items-center space-x-1.5 sm:space-x-2 px-2 py-1 sm:px-3 sm:py-1 dark:bg-cyan-500/10 dark:border dark:border-cyan-500/30 rounded-lg dark:text-cyan-400 bg-gray-100 text-gray-500"
                           >
                                 <span className="text-xs font-medium">{filter.label}</span>
                             <button
                               onClick={() => removeFilter(filter)}
-                                  className="text-cyan-400 hover:text-white hover:cursor-pointer"
+                                  className="dark:text-cyan-400 text-gray-500 dark:hover:dark:text-white hover:text-gray-900 hover:cursor-pointer"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -959,8 +1017,8 @@ const Home = () => {
                 {loading && currentUrlQuery && (
                   <div className="flex justify-center items-center py-12">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className="w-8 h-8 border-2 border-gray-600 border-t-cyan-400 rounded-full animate-spin"></div>
-                      {/* <p className="text-gray-400 font-medium">Searching archives...</p> */}
+                      <div className="w-8 h-8 border-2 dark:border-gray-600 dark:border-t-cyan-400 border-t-cyan-400 rounded-full animate-spin"></div>
+                      {/* <p className="dark:text-gray-400 text-gray-600 font-medium">Searching archives...</p> */}
                     </div>
                   </div>
                 )}
@@ -970,15 +1028,15 @@ const Home = () => {
           </main>
 
           {/* Footer */}
-          <footer className={`relative z-10 border-t border-gray-800/50 mt-12 ${
+          <footer className={`relative z-10 border-t dark:border-gray-800 border-gray-300/50 mt-12 ${
             selectedDocumentId ? "pointer-events-auto" : ""
           }`}>
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
               <div className="flex items-center justify-between">
                 {/* Copyright */}
                 <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer">
-                <p className="text-gray-400 text-sm">
-                    <span className="hover:text-white">Open Data</span> @{new Date().getFullYear()}. // All rights reserved.
+                <p className="dark:text-gray-400 text-gray-500 text-sm">
+                    <span className="dark:hover:dark:text-white dark:text-gray-400 text-gray-500 hover:text-gray-900">Open Data</span> © {new Date().getFullYear()}. All rights reserved.
                   </p>
                 </a>
                 
@@ -988,7 +1046,7 @@ const Home = () => {
                     href="https://discord.gg/wYKFyVEY"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 text-gray-400 hover:text-white transition-all duration-200 hover:scale-110"
+                    className="p-2 dark:text-gray-400 text-gray-500 dark:hover:dark:text-white hover:text-gray-900 transition-all duration-200 hover:scale-110"
                   >
                     <MessageSquare className="w-5 h-5" />
                   </a>
@@ -996,7 +1054,7 @@ const Home = () => {
                     href="https://www.linkedin.com/company/lankadata/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 text-gray-400 hover:text-white transition-all hover:scale-110"
+                    className="p-2 dark:text-gray-400 text-gray-500 dark:hover:dark:text-white hover:text-gray-900 transition-all hover:scale-110"
                   >
                     <Linkedin className="w-5 h-5" />
                   </a>
@@ -1004,7 +1062,7 @@ const Home = () => {
                     href="https://github.com/LDFLK"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 text-gray-400 hover:text-white transition-all duration-200 hover:scale-110"
+                    className="p-2 dark:text-gray-400 text-gray-500 dark:hover:dark:text-white hover:text-gray-900 transition-all duration-200 hover:scale-110"
                   >
                     <Github className="w-5 h-5" />
                   </a>
@@ -1016,27 +1074,37 @@ const Home = () => {
       </div>
 
       {selectedDocumentId && (
-        <div className="fixed top-16 right-0 bottom-0 w-2/3 bg-black/30 z-40 transition-opacity duration-500"></div>
+        <div className="fixed top-16 right-0 bottom-0 w-2/3 dark:bg-black/30 bg-white/30 z-40 transition-opacity duration-500"></div>
       )}
 
       {/* Left Info Panel (1/3 width) - Only show when a node is selected */}
       {selectedDocumentId && selectedNodeInfo && (
-        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 bg-gray-950 shadow-2xl z-50 overflow-y-auto animate-slideInLeft border-r border-gray-800 scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400">
+        <div className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-1/3 dark:bg-gray-950 bg-white shadow-2xl overflow-y-auto animate-slideInLeft dark:border-gray-800 scrollbar-thin dark:scrollbar-track-gray-900 dark:scrollbar-track-gray-200 dark:scrollbar-thumb-cyan-500 dark:hover:scrollbar-thumb-cyan-400 z-50">
+          {/* Loading Overlay */}
+          {isTracePaneExpanding && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 dark:bg-gray-950 bg-white/80 backdrop-blur-sm">
+              <div className="text-center">
+                <div className="inline-block w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                <p className="text-sm dark:text-gray-400 text-gray-600 mt-2">Loading connections...</p>
+              </div>
+            </div>
+          )}
+          
           {/* Header with Icon and Title */}
-          <div className="pt-6">
+          <div className={`pt-6 ${isTracePaneExpanding ? 'opacity-40' : ''}`}>
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 flex items-center justify-center">
-                <FileText className="w-8 h-8 text-white" />
+                <FileText className="w-8 h-8 dark:text-white text-gray-900" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
                 {selectedNodeInfo.node.data.title}
               </h2>
-              <p className="text-sm text-gray-400 font-light">
+              <p className="text-sm dark:text-gray-400 text-gray-600 font-light">
                 {selectedNodeInfo.connections.length} Relationship{selectedNodeInfo.connections.length !== 1 ? 's' : ''} found
               </p>
             </div>
           </div>
-          <div className="p-4">
+          <div className={`p-4 transition-opacity duration-300 ${isTracePaneExpanding ? 'opacity-40' : ''}`}>
             {/* Connections List */}
             {selectedNodeInfo.connections.length > 0 && (
               <div>
@@ -1050,10 +1118,10 @@ const Home = () => {
                     .map((connection, index) => (
                       <div
                         key={index}
-                        className={`p-4 border-b border-gray-700 
+                        className={`p-4 border-b dark:border-gray-700 border-gray-300 
                           transform transition-all duration-300 ${
                             connection.relatedEntityId !== "gov_01" 
-                              ? "hover:cursor-pointer hover:scale-[1.02] hover:bg-gradient-to-br hover:from-gray-700/50 hover:to-gray-800/50 hover:border-cyan-500/50 hover:shadow-lg" 
+                              ? "hover:cursor-pointer hover:scale-[1.02] dark:hover:bg-gradient-to-br dark:hover:from-gray-700/50 dark:hover:to-gray-800/50 hover:bg-gradient-to-br hover:from-gray-100/50 hover:to-gray-200/50 hover:border-cyan-500/50 hover:shadow-lg" 
                               : "" 
                           }`}
                         onClick={() =>
@@ -1063,7 +1131,7 @@ const Home = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-cyan-400" />
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium dark:text-white text-gray-900">
                               {connection.relatedEntityId !== "gov_01"
                                 ? "Gazette "
                                 : ""}
@@ -1075,7 +1143,7 @@ const Home = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-400">
+                          <span className="text-xs font-medium dark:text-gray-400 text-gray-600">
                             Relationship:
                           </span>
                           <span
@@ -1086,7 +1154,7 @@ const Home = () => {
                                 ? "bg-teal-500/10 text-teal-400 border border-teal-500/30"
                                 : connection.name === "REFERS_TO"
                                 ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
-                                : "bg-gray-500/10 text-gray-400 border border-gray-500/30"
+                                : "bg-gray-500/10 dark:text-gray-400 text-gray-600 border border-gray-500/30"
                             }`}
                           >
                             {getReadableRelationshipName(
@@ -1102,13 +1170,13 @@ const Home = () => {
 
             {selectedNodeInfo.connections.length === 0 && (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CircleAlert className="w-8 h-8 text-gray-500" />
+                <div className="w-16 h-16 dark:bg-gray-800/50 bg-gray-200/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CircleAlert className="w-8 h-8 dark:text-gray-500 text-gray-400" />
                 </div>
-                <p className="text-sm text-gray-400 font-medium">
+                <p className="text-sm dark:text-gray-400 text-gray-600 font-medium">
                   No connections found for this document
                 </p>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs dark:text-gray-500 text-gray-500 mt-2">
                   This document has no relationships with others
                 </p>
               </div>
@@ -1123,22 +1191,23 @@ const Home = () => {
             documentId={selectedDocumentId}
             onClose={handleClosePane}
             onNodeSelect={handleNodeSelect}
+            onExpandingChange={handleExpandingChange}
           />
           
           {/* Mobile Message Overlay - Shows when mobile and tracePane is active */}
           {isMobile && (
-            <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
-              <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+            <div className="fixed inset-0 dark:bg-gray-950/95 bg-white/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+              <div className="dark:bg-gray-900 bg-gray-100 border dark:border-gray-700 border-gray-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
                 <Info className="text-cyan-400 mb-4 w-8 h-8" />
-                <p className="text-white text-base font-medium mb-2">
+                <p className="dark:text-white text-gray-900 text-base font-medium mb-2">
                   Desktop Recommended
                 </p>
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="dark:text-gray-400 text-gray-600 text-sm mb-6">
                   Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
                 </p>
                 <button
                   onClick={handleClosePane}
-                  className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
+                  className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 dark:text-white text-gray-900 rounded-lg transition-all font-medium"
                 >
                   Close
                 </button> 
@@ -1150,18 +1219,18 @@ const Home = () => {
 
       {/* Mobile Message Overlay - Shows when clicking Explore on mobile without tracePane */}
       {showMobileMessage && !selectedDocumentId && (
-        <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
-          <div className="bg-gray-900 border border-gray-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+        <div className="fixed inset-0 dark:bg-gray-950 bg-white/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+          <div className="dark:bg-gray-900 bg-gray-100 border dark:border-gray-700 border-gray-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
             <Info className="text-cyan-400 mb-4 w-8 h-8" />
-            <p className="text-white text-base font-medium mb-2">
+            <p className="dark:text-white text-gray-900 text-base font-medium mb-2">
               Desktop Recommended
             </p>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="dark:text-gray-400 text-gray-600 text-sm mb-6">
               Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
             </p>
             <button
               onClick={() => setShowMobileMessage(false)}
-              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-all font-medium"
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 dark:text-white text-gray-900 rounded-lg transition-all font-medium"
             >
               Close
             </button> 
@@ -1194,34 +1263,56 @@ const Home = () => {
           animation: slideInLeft 0.3s ease-out;
         }
 
-        /* Custom Scrollbar Styling */
+        /* Custom Scrollbar Styling - Light Theme (default) */
         .scrollbar-thin::-webkit-scrollbar {
           width: 8px;
         }
 
         .scrollbar-thin::-webkit-scrollbar-track {
-          background: #111827;
+          background: #f3f4f6; /* gray-100 */
           border-radius: 4px;
         }
 
         .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: #06b6d4;
+          background: #9ca3af; /* gray-400 */
           border-radius: 4px;
           transition: background-color 0.2s ease;
         }
 
         .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-          background: #0891b2;
+          background: #6b7280; /* gray-500 */
         }
 
         .scrollbar-thin::-webkit-scrollbar-thumb:active {
-          background: #0e7490;
+          background: #4b5563; /* gray-600 */
         }
 
-        /* Firefox scrollbar styling */
+        /* Dark Theme Scrollbar */
+        .dark .scrollbar-thin::-webkit-scrollbar-track {
+          background: #111827; /* gray-900 */
+        }
+
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #06b6d4; /* cyan-500 */
+        }
+
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #0891b2; /* cyan-600 */
+        }
+
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb:active {
+          background: #0e7490; /* cyan-700 */
+        }
+
+        /* Firefox scrollbar styling - Light Theme */
         .scrollbar-thin {
           scrollbar-width: thin;
-          scrollbar-color: #06b6d4 #111827;
+          scrollbar-color: #9ca3af #f3f4f6; /* gray-400 gray-100 */
+        }
+
+        /* Firefox scrollbar styling - Dark Theme */
+        .dark .scrollbar-thin {
+          scrollbar-color: #06b6d4 #111827; /* cyan-500 gray-900 */
         }
       `}</style>
     </>
