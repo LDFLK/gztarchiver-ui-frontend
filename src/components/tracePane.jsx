@@ -64,7 +64,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
   // --- Relationship Type Configuration ---
   const relationshipConfig = {
     AS_DOCUMENT: {
-      allias: "Government Publication",
+      allias: "Published by Government",
       color: "#06B6D4", // Cyan (dark theme)
       colorLight: "#22D3EE", // Lighter cyan-400 for light theme
       textColor: "#0E7490",
@@ -73,7 +73,7 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
       angleRange: [-30, 30], // Wider spread
     },
     AMENDS: {
-      allias: "Amendment",
+      allias: "Amends",
       color: "#14B8A6", // Teal (dark theme)
       colorLight: "#2DD4BF", // Lighter teal-400 for light theme
       textColor: "#0F766E",
@@ -632,19 +632,6 @@ const TracePane = ({ documentId, onClose, onNodeSelect, onExpandingChange }) => 
 
     setDraggedNodeId(null);
   };
-
-  // // ⭐ NEW HANDLER: Isolation Mode Toggle
-  // const handleIsolationToggle = (e, nodeId) => {
-  //   e.stopPropagation(); // Prevent the main node click logic
-  //   if (selectedNodeId === nodeId) {
-  //     setIsIsolationMode((prev) => !prev);
-  //   } else {
-  //     // If they click the isolation toggle on a non-selected node,
-  //     // select it first, then enable isolation.
-  //     handleNodeClick(nodeId);
-  //     setIsIsolationMode(true);
-  //   }
-  // };
 
   // --- Zoom and View Handlers ---
 
@@ -1208,9 +1195,7 @@ return (
                             markerStart={arrowMarkerStart}
                           />
 
-                          {/* Dots removed - arrows now clearly show direction */}
 
-                          {/* Relationship Label - rotated to align with line */}
                           <g
                             transform={`translate(${midX}, ${midY}) rotate(${labelAngle})`}
                           >
@@ -1387,7 +1372,7 @@ return (
       {showTooltip && (
         <div
           className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-fadeInOut
-               dark:bg-gray-900 bg-gray-100 dark:text-white text-gray-900 px-5 py-4 rounded-lg shadow-lg"
+               dark:bg-gray-900 bg-white dark:text-white text-gray-700 px-5 py-4 rounded-lg shadow-lg"
         >
           <p className="font-medium">This is the origin node of connections</p>
           <p className="text-sm font-medium">Click other nodes to play</p>
