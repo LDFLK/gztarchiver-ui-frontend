@@ -24,7 +24,9 @@ import {
   Linkedin,
   Github,
   ChevronUp,
+  ChevronDown,
   Info,
+  BarChart3,
 } from "lucide-react";
 
 import SkeletonCard from "../components/skeletonCard";
@@ -76,6 +78,7 @@ const Home = () => {
   const [limit, setLimit] = useState(10);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileMessage, setShowMobileMessage] = useState(false);
+  const [showMobileStats, setShowMobileStats] = useState(false);
 
   const updateUrlQuery = useCallback(
     (newQuery) => {
@@ -147,6 +150,77 @@ const Home = () => {
 
   const handleExpandingChange = (isExpanding) => {
     setIsTracePaneExpanding(isExpanding);
+  };
+
+  // Reusable Stats Component
+  const StatsDisplay = ({ isMobile = false }) => {
+    const containerClass = isMobile 
+      ? "grid grid-cols-2 gap-4" 
+      : "flex items-center space-x-4";
+    
+    const statCardClass = isMobile
+      ? "text-center p-3 rounded-lg dark:bg-gray-900/50 bg-gray-100/50"
+      : "text-center";
+    
+    const valueClass = isMobile
+      ? "text-xl font-bold text-cyan-400 transition-all duration-100"
+      : "text-2xl font-bold text-cyan-400 transition-all duration-100";
+    
+    const labelClass = isMobile
+      ? "text-xs dark:text-gray-400 text-gray-600 mt-1"
+      : "text-xs dark:text-gray-400 text-gray-600";
+
+    const yearsValueClass = isMobile
+      ? "text-lg font-bold text-cyan-400 transition-all duration-100"
+      : "text-2xl font-bold text-cyan-400 transition-all duration-100";
+
+    return (
+      <div className={containerClass}>
+        {/* Total Documents */}
+        <div className={statCardClass}>
+          <div className={valueClass}>
+            {isLoading ? 
+              animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
+              (apiData?.total_docs?.toLocaleString() || "0")
+            }
+          </div>
+          <div className={labelClass}>Document Entries</div>
+        </div>
+        
+        {/* Available Docs Count */}
+        <div className={statCardClass}>
+          <div className={valueClass}>
+            {isLoading ? 
+              animatedStats.availableDocs.toLocaleString().padStart(5, '0') : 
+              (apiData?.available_docs?.toLocaleString() || "0")
+            }
+          </div>
+          <div className={labelClass}>Documents Available</div>
+        </div>
+        
+        {/* Document Types Count */}
+        <div className={statCardClass}>
+          <div className={valueClass}>
+            {isLoading ? 
+              animatedStats.documentTypes.toString().padStart(2, '0') : 
+              ((apiData?.document_types || []).length || 0)
+            }
+          </div>
+          <div className={labelClass}>Document Types</div>
+        </div>
+        
+        {/* Years Range */}
+        <div className={statCardClass}>
+          <div className={yearsValueClass}>
+            {isLoading ? 
+              `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
+              `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
+            }
+          </div>
+          <div className={labelClass}>Years Covered</div>
+        </div>
+      </div>
+    );
   };
 
   // ADD THIS useEffect to initialize from URL
@@ -407,6 +481,8 @@ const Home = () => {
     setCurrentPage(1);
     setActiveFilters([]);
     setShowQuickSearch(false);
+    setSelectedDocumentId(null);
+    setSelectedNodeInfo(null);
     setPagination({
       current_page: 1,
       total_pages: 0,
@@ -560,13 +636,22 @@ const Home = () => {
         setShowQuickSearch(false);
         setShowLimitDropdown(false);
       }
+      
+      // Close mobile stats drawer when clicking outside
+      if (
+        showMobileStats &&
+        !event.target.closest('[aria-label="Toggle stats"]') &&
+        !event.target.closest('.mobile-stats-drawer')
+      ) {
+        setShowMobileStats(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [showMobileStats]);
 
   const {
     data: apiData,
@@ -694,21 +779,23 @@ const Home = () => {
   // Detect mobile/tablet
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
+      const wasMobile = isMobile;
+      const nowMobile = window.innerWidth < 1024;
+      setIsMobile(nowMobile);
+      
+      // Close mobile stats drawer if switching from mobile to desktop
+      if (wasMobile && !nowMobile) {
+        setShowMobileStats(false);
+      }
     };
 
     handleResize(); // Run on mount
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [isMobile]);
 
   return (
     <>
-      {/* Theme Toggle - Fixed to Right Side, Vertically Centered */}
-      <div className="fixed right-0 sm:top-1/2 top-30 -translate-y-1/2 z-50">
-        <ThemeToggle />
-      </div>
-
       {/* Modern Tech Archive Background */}
       <div className="min-h-screen dark:bg-gray-950 bg-white relative overflow-hidden">
         {/* Tech Grid Background */}
@@ -726,72 +813,58 @@ const Home = () => {
         } ${selectedDocumentId ? "w-1/3 max-w-none h-screen overflow-y-auto scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-cyan-500 hover:scrollbar-thumb-cyan-400" : ""}`}
         >
           {/* Header Section */}
-           <header className="fixed top-0 left-0 right-0 z-1000 dark:border-b border-b dark:border-gray-800 dark:bg-gray-950 bg-white/95 backdrop-blur-sm transition-all duration-700 ease-out">
+           <header className={`fixed top-0 left-0 right-0 z-1000 dark:border-b border-b dark:border-gray-800 dark:bg-gray-950 bg-white/95 backdrop-blur-sm transition-all duration-700 ease-out ${selectedDocumentId ? "pointer-events-auto" : ""}`}>
             <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 {/* Logo */}
                 <div className="flex items-center space-x-2 sm:space-x-3">
-                  {/* <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
-                    <FileArchive className="w-6 h-6 dark:text-white text-gray-900" />
-                  </div> */}
                   <div>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">Archives</h1>
-                    {/* <p className="text-xs dark:text-gray-400 text-gray-600">Sri Lankan Government Documents Archive</p> */}
+                    <button
+                      onClick={handleBack}
+                      className="text-3xl sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent hover:from-cyan-300 hover:to-cyan-400 transition-all duration-200 cursor-pointer"
+                    >
+                      Archives
+                    </button>
                   </div>
                 </div>
 
-                {/* Stats Overview - Always Visible */}
-                <div className="hidden md:flex items-center space-x-4">
-                  {/* Total Documents */}
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                      {isLoading ? 
-                        animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
-                        (apiData?.total_docs?.toLocaleString() || "0")
-                      }
-                    </div>
-                    <div className="text-xs dark:text-gray-400 text-gray-600">Document Entries</div>
+                {/* Right Side: Stats Overview + Theme Toggle */}
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                  {/* Mobile Stats Button - Only visible on mobile */}
+                  <button
+                    onClick={() => setShowMobileStats(!showMobileStats)}
+                    className="md:hidden p-2 dark:text-gray-400 text-cyan-400 dark:hover:text-cyan-400 hover:text-cyan-500 hover:cursor-pointer rounded-lg dark:hover:bg-gray-800/50 hover:bg-gray-100 transition-all duration-200 relative"
+                    aria-label="Toggle stats"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                    {showMobileStats && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full"></div>
+                    )}
+                  </button>
+
+                  {/* Stats Overview - Desktop Only */}
+                  <div className="hidden md:flex items-center">
+                    <StatsDisplay isMobile={false} />
                   </div>
                   
-                  {/* Available Docs Count */}
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                      {isLoading ? 
-                        animatedStats.availableDocs.toLocaleString().padStart(5, '0') : 
-                        (apiData?.available_docs?.toLocaleString() || "0")
-                      }
-                    </div>
-                    <div className="text-xs dark:text-gray-400 text-gray-600">Documents Available</div>
-                  </div>
-                  
-                  {/* Document Types Count */}
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                      {isLoading ? 
-                        animatedStats.documentTypes.toString().padStart(2, '0') : 
-                        ((apiData?.document_types || []).length || 0)
-                      }
-                    </div>
-                    <div className="text-xs dark:text-gray-400 text-gray-600">Document Types</div>
-                  </div>
-                  
-                  {/* Years Range */}
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold text-cyan-400 transition-all duration-100`}>
-                      {isLoading ? 
-                        `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
-                        `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
-                      }
-                    </div>
-                    <div className="text-xs dark:text-gray-400 text-gray-600">Years Covered</div>
-                  </div>
+                  {/* Theme Toggle */}
+                  <ThemeToggle />
                 </div>
               </div>
             </div>
           </header>
 
+          {/* Mobile Stats Drawer - Slides down from header */}
+          {showMobileStats && (
+            <div className={`mobile-stats-drawer fixed top-20 left-0 right-0 z-[999] md:hidden bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm border-b dark:border-gray-800 border-gray-300 shadow-lg animate-slideDown ${selectedDocumentId ? "pointer-events-auto" : ""}`}>
+              <div className="max-w-7xl mx-auto px-4 py-5">
+                <StatsDisplay isMobile={true} />
+              </div>
+            </div>
+          )}
+
           {/* Main Content */}
-          <main className={`flex-1 relative z-10 transition-all duration-700 ease-out pt-16 ${
+          <main className={`flex-1 relative z-10 transition-all duration-700 ease-out ${showMobileStats ? 'pt-[9rem]' : 'pt-16'} ${
             currentUrlQuery ? "flex items-start justify-start" : "flex items-center justify-center"
           } ${selectedDocumentId ? "pointer-events-auto" : ""}`}>
             <div className={`transition-all duration-700 ease-out ${
@@ -817,7 +890,7 @@ const Home = () => {
                         Document Archive
                       </span>
                     </h2>
-                    <p className="text-base sm:text-lg md:text-xl dark:text-gray-300 text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
+                    <p className="text-sm sm:text-lg md:text-xl dark:text-gray-300 text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
                       Advanced search and analysis platform for government documents, 
                       enabling transparency and data-driven insights.
                     </p>
@@ -877,15 +950,15 @@ const Home = () => {
                       <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
                         <div className={`relative dark:bg-gray-900 bg-white backdrop-blur-sm dark:border dark:border-gray-800 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-3' : 'p-4 sm:p-5'}`}>
-                          <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
                             <h3 className={`${selectedDocumentId ? 'text-sm' : 'text-base sm:text-lg'} font-semibold dark:text-white text-gray-700`}>Quick Search</h3>
-                            <button
-                              onClick={() => setShowQuickSearch(false)}
+                      <button
+                        onClick={() => setShowQuickSearch(false)}
                               className="dark:text-gray-400 text-gray-600 dark:hover:dark:text-white hover:text-gray-900 dark:hover:bg-gray-700 hover:bg-gray-300 rounded-lg transition-colors cursor-pointer p-1"
-                            >
+                      >
                               <X className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'}`} />
-                            </button>
-                          </div>
+                      </button>
+                    </div>
 
                           {/* Document Types */}
                           <div className="mb-3 sm:mb-4">
@@ -895,13 +968,13 @@ const Home = () => {
                                 <>
                                   <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
-                                  </div>
+                    </div>
                                   <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
-                                  </div>
+                      </div>
                                   <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
-                                  </div>
+                    </div>
                                   <div className="px-3 py-1.5 dark:bg-gray-800 bg-gray-200/50 rounded-lg animate-pulse">
                                     <div className="w-16 h-4"></div>
                                   </div>
@@ -911,7 +984,7 @@ const Home = () => {
                                   <button
                                     key={index}
                                     onClick={() => handleTypes(type)}
-                                    className="px-1.5 py-1 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium bg-gray-100 text-gray-500 cursor-pointer transition-all duration-200"
+                                    className="px-1.5 py-1 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-400 rounded-lg text-xs sm:text-sm font-medium bg-gray-100 hover:bg-cyan-500/10 hover:text-cyan-500 text-gray-500 cursor-pointer transition-all duration-200"
                                   >
                                     {type}
                                   </button>
@@ -919,43 +992,43 @@ const Home = () => {
                               ) : (
                                 <div className="text-gray-500 text-xs sm:text-sm">No document types available</div>
                               )}
-                            </div>
-                          </div>
+                  </div>
+                </div>
 
                           {/* Search Criteria */}
                           <div className="border-t dark:border-gray-700 border-gray-300 pt-3 pb-3 sm:pt-4">
                             <p className="text-xs sm:text-sm dark:text-gray-400 text-gray-600 mb-2 font-medium">Search Criteria:</p>
-                            <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2">
                               {["id:", "type:", "date:", "available:", "source:"].map((criteria, index) => (
-                                <button
+                            <button
                                   key={index}
                                   onClick={() => handleCriteria(criteria)}
-                                  className="px-1.5 py-1 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium bg-gray-100 text-gray-500 cursor-pointer transition-all duration-200"
-                                >
+                                  className="px-1.5 py-1 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-400 rounded-lg text-xs sm:text-sm font-medium bg-gray-100 hover:bg-cyan-500/10 hover:text-cyan-500 text-gray-500 cursor-pointer transition-all duration-200"
+                            >
                                   {criteria}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                            </button>
+                        ))}
+                      </div>
+              </div>
 
                           <div className="border-t dark:border-gray-700 border-gray-300 pt-3 sm:pt-4">
                             <p className="text-xs sm:text-sm dark:text-gray-400 text-gray-600 mb-2 sm:mb-3 font-medium">Search Examples:</p>
                             <div className="flex flex-wrap gap-1.5 sm:gap-2">
                               {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
-                                <span
+                                        <span
                                   key={example}
                                   className="px-1.5 py-1 dark:bg-gray-800 bg-gray-100 dark:text-gray-300 text-gray-500 rounded-lg text-xs font-medium"
-                                >
+                                        >
                                   {example}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                                        </span>
+                                      ))}
+                                    </div>
+                                    </div>
+                              </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
 
                   {/* Active Filters */}
                 {activeFilters.length > 0 && (
@@ -976,13 +1049,13 @@ const Home = () => {
                             >
                               <X className="w-3 h-3" />
                             </button>
-                          </div>
+                                      </div>
                         ))}
-                      </div>
+                                </div>
+                              </div>
                     </div>
                   </div>
-              </div>
-                  )}
+                )}
               </div>
 
 
@@ -1035,7 +1108,7 @@ const Home = () => {
               <div className="flex items-center justify-between">
                 {/* Copyright */}
                 <a href="https://opendata.lk" target="_blank" rel="noopener noreferrer">
-                <p className="dark:text-gray-400 text-gray-500 text-sm">
+                <p className="dark:text-gray-400 text-gray-500 text-xs sm:text-sm">
                     <span className="dark:hover:dark:text-white dark:text-gray-400 text-gray-500 hover:text-gray-900">Open Data</span> © {new Date().getFullYear()}. All rights reserved.
                   </p>
                 </a>
@@ -1094,12 +1167,12 @@ const Home = () => {
           <div className={`pt-6 ${isTracePaneExpanding ? 'opacity-40' : ''}`}>
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 flex items-center justify-center">
-                <FileText className="w-8 h-8 dark:text-white text-gray-900" />
+                <FileText className="w-8 h-8 dark:text-white text-cyan-400" />
               </div>
-              <h2 className="text-2xl font-bold dark:text-white text-gray-900 mb-2">
+              <h2 className="text-2xl font-bold dark:text-white text-cyan-400 mb-2">
                 {selectedNodeInfo.node.data.title}
               </h2>
-              <p className="text-sm dark:text-gray-400 text-gray-600 font-light">
+              <p className="text-sm dark:text-gray-400 text-gray-500 font-light">
                 {selectedNodeInfo.connections.length} Relationship{selectedNodeInfo.connections.length !== 1 ? 's' : ''} found
               </p>
             </div>
@@ -1132,11 +1205,11 @@ const Home = () => {
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-cyan-400" />
                             <p className="text-sm font-medium dark:text-white text-gray-900">
-                              {connection.relatedEntityId !== "gov_01"
-                                ? "Gazette "
-                                : ""}
-                              {connection.document_number}
-                            </p>
+                            {connection.relatedEntityId !== "gov_01"
+                              ? "Gazette "
+                              : ""}
+                            {connection.document_number}
+                          </p>
                           </div>
                           {connection.relatedEntityId !== "gov_01" && (
                             <SquareArrowOutUpRight className="text-cyan-400 w-4 h-4 hover:scale-110 transition-transform" />
@@ -1187,27 +1260,27 @@ const Home = () => {
 
       {selectedDocumentId && (
         <>
-          <TracePane
-            documentId={selectedDocumentId}
-            onClose={handleClosePane}
-            onNodeSelect={handleNodeSelect}
+        <TracePane
+          documentId={selectedDocumentId}
+          onClose={handleClosePane}
+          onNodeSelect={handleNodeSelect}
             onExpandingChange={handleExpandingChange}
           />
           
           {/* Mobile Message Overlay - Shows when mobile and tracePane is active */}
           {isMobile && (
-            <div className="fixed inset-0 dark:bg-gray-950/95 bg-white/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
-              <div className="dark:bg-gray-900 bg-gray-100 border dark:border-gray-700 border-gray-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+            <div className="fixed inset-0 dark:bg-gray-950/95 bg-white backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+              <div className="dark:bg-gray-900 bg-white border-none shadow-xl px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
                 <Info className="text-cyan-400 mb-4 w-8 h-8" />
-                <p className="dark:text-white text-gray-900 text-base font-medium mb-2">
+                <p className="dark:text-white text-gray-500 text-base font-medium mb-2">
                   Desktop Recommended
                 </p>
-                <p className="dark:text-gray-400 text-gray-600 text-sm mb-6">
+                <p className="dark:text-gray-400 text-gray-500 text-sm mb-6">
                   Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
                 </p>
                 <button
                   onClick={handleClosePane}
-                  className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 dark:text-white text-gray-900 rounded-lg transition-all font-medium"
+                  className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 dark:text-white text-white rounded-lg transition-all font-medium"
                 >
                   Close
                 </button> 
@@ -1219,18 +1292,18 @@ const Home = () => {
 
       {/* Mobile Message Overlay - Shows when clicking Explore on mobile without tracePane */}
       {showMobileMessage && !selectedDocumentId && (
-        <div className="fixed inset-0 dark:bg-gray-950 bg-white/95 backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
-          <div className="dark:bg-gray-900 bg-gray-100 border dark:border-gray-700 border-gray-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
+        <div className="fixed inset-0 dark:bg-gray-950 bg-white backdrop-blur-sm z-[100] flex items-center justify-center text-center px-6">
+          <div className="dark:bg-gray-900 bg-white border-none shadow-xl px-6 py-8 rounded-lg flex flex-col items-center justify-center text-center max-w-md mx-4">
             <Info className="text-cyan-400 mb-4 w-8 h-8" />
-            <p className="dark:text-white text-gray-900 text-base font-medium mb-2">
+            <p className="dark:text-white text-gray-500 text-base font-medium mb-2">
               Desktop Recommended
             </p>
-            <p className="dark:text-gray-400 text-gray-600 text-sm mb-6">
+            <p className="dark:text-gray-400 text-gray-500 text-sm mb-6">
               Please use a Desktop browser to explore connections. Mobile and Tablet devices are not fully supported.
             </p>
             <button
               onClick={() => setShowMobileMessage(false)}
-              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 dark:text-white text-gray-900 rounded-lg transition-all font-medium"
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 dark:text-white text-white rounded-lg transition-all font-medium"
             >
               Close
             </button> 
@@ -1259,8 +1332,23 @@ const Home = () => {
           }
         }
 
+        @keyframes slideDown {
+          from {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
         .animate-slideInLeft {
           animation: slideInLeft 0.3s ease-out;
+        }
+
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
         }
 
         /* Custom Scrollbar Styling - Light Theme (default) */

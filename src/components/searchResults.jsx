@@ -114,7 +114,7 @@ const SearchResults = ({
               >
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 dark:text-cyan-400 text-gray-900" />
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 dark:text-cyan-400 text-cyan-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base sm:text-lg font-medium dark:text-white text-gray-900 mb-2 break-words">
@@ -152,7 +152,7 @@ const SearchResults = ({
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
                               ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
+                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
                           }`}
                         >
                           Source
@@ -166,7 +166,7 @@ const SearchResults = ({
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
                               ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
+                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
                           }`}
                         >
                           Download
@@ -180,7 +180,7 @@ const SearchResults = ({
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
                               ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
+                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
                           }`}
                         >
                           View
@@ -192,7 +192,7 @@ const SearchResults = ({
                         className={`transition-all duration-200 ${
                           item.availability === "Unavailable"
                             ? "text-gray-500 cursor-not-allowed"
-                            : "dark:text-cyan-400 text-gray-700 dark:hover:text-white hover:text-gray-900"
+                            : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
                         }`}
                       >
                         Explore Connections
