@@ -911,7 +911,7 @@ const Home = () => {
                           onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     onFocus={handleSearchFocus}
-                          className={`flex-1 bg-transparent dark:text-white text-gray-600 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none text-sm sm:text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
+                          className={`flex-1 bg-transparent dark:text-white text-gray-600 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none text-base ${selectedDocumentId ? 'px-2 py-2 text-sm' : 'px-2 py-2 sm:px-4 sm:py-3'}`}
                         />
                         <div className={`flex items-center ${selectedDocumentId ? 'space-x-1 mr-1' : 'space-x-1 sm:space-x-2 mr-1 sm:mr-2'}`}>
                           {searchInput && (
