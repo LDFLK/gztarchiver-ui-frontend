@@ -1116,7 +1116,7 @@ const Home = () => {
                 {/* Social Media Links */}
                 <div className="flex items-center space-x-4">
                   <a
-                    href="https://discord.gg/wYKFyVEY"
+                    href="https://discord.gg/mg94NtHD9Y"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 dark:text-gray-400 text-gray-500 dark:hover:dark:text-white hover:text-gray-900 transition-all duration-200 hover:scale-110"
