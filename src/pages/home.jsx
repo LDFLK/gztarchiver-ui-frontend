@@ -46,14 +46,6 @@ const Home = () => {
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [selectedNodeInfo, setSelectedNodeInfo] = useState(null);
   const [isTracePaneExpanding, setIsTracePaneExpanding] = useState(false);
-  const [animatedStats, setAnimatedStats] = useState({
-    totalDocs: 0,
-    availableDocs: 0,
-    documentTypes: 0,
-    yearsFrom: 0,
-    yearsTo: 0
-  });
-  const [animationIntervals, setAnimationIntervals] = useState([]);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
@@ -174,49 +166,52 @@ const Home = () => {
       ? "text-lg font-bold text-cyan-400 transition-all duration-100"
       : "text-2xl font-bold text-cyan-400 transition-all duration-100";
 
+    const spinnerWrapperClass = "flex justify-center mt-1";
+    const spinnerBaseClass = "mx-auto rounded-full border-2 border-cyan-400/30 border-t-cyan-400 animate-spin mb-3";
+    const defaultSpinnerSize = isMobile ? "h-4 w-4" : "h-5 w-5";
+
+    const renderStatValue = (value, { spinnerSize, valueClassName } = {}) => {
+      if (isLoading) {
+        return (
+          <div role="status" className={spinnerWrapperClass}>
+            <span className="sr-only">Loading</span>
+            <div
+              aria-hidden="true"
+              className={`${spinnerBaseClass} ${spinnerSize || defaultSpinnerSize}`}
+            />
+          </div>
+        );
+      }
+
+      return <div className={valueClassName || valueClass}>{value}</div>;
+    };
+
     return (
       <div className={containerClass}>
         {/* Total Documents */}
         <div className={statCardClass}>
-          <div className={valueClass}>
-            {isLoading ? 
-              animatedStats.totalDocs.toLocaleString().padStart(5, '0') : 
-              (apiData?.total_docs?.toLocaleString() || "0")
-            }
-          </div>
+          {renderStatValue(apiData?.total_docs?.toLocaleString() || "0")}
           <div className={labelClass}>Document Entries</div>
         </div>
         
         {/* Available Docs Count */}
         <div className={statCardClass}>
-          <div className={valueClass}>
-            {isLoading ? 
-              animatedStats.availableDocs.toLocaleString().padStart(5, '0') : 
-              (apiData?.available_docs?.toLocaleString() || "0")
-            }
-          </div>
+          {renderStatValue(apiData?.available_docs?.toLocaleString() || "0")}
           <div className={labelClass}>Documents Available</div>
         </div>
         
         {/* Document Types Count */}
         <div className={statCardClass}>
-          <div className={valueClass}>
-            {isLoading ? 
-              animatedStats.documentTypes.toString().padStart(2, '0') : 
-              ((apiData?.document_types || []).length || 0)
-            }
-          </div>
+          {renderStatValue(((apiData?.document_types || []).length || 0).toLocaleString())}
           <div className={labelClass}>Document Types</div>
         </div>
         
         {/* Years Range */}
         <div className={statCardClass}>
-          <div className={yearsValueClass}>
-            {isLoading ? 
-              `${animatedStats.yearsFrom.toString().padStart(4, '0')} - ${animatedStats.yearsTo.toString().padStart(4, '0')}` : 
-              `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`
-            }
-          </div>
+          {renderStatValue(
+            `${apiData?.years_covered?.from || "0"} - ${apiData?.years_covered?.to || "0"}`,
+            { valueClassName: yearsValueClass }
+          )}
           <div className={labelClass}>Years Covered</div>
         </div>
       </div>
@@ -544,62 +539,6 @@ const Home = () => {
     window.open(newUrl, "_blank");
   };
 
-  // Rapid continuous counter function
-  const startRapidCounters = () => {
-    // Clear any existing intervals
-    animationIntervals.forEach(interval => clearInterval(interval));
-    
-    const intervals = [];
-    
-    // Total Documents - rapid increment
-    const totalDocsInterval = setInterval(() => {
-      setAnimatedStats(prev => ({
-        ...prev,
-        totalDocs: Math.floor(Math.random() * 99999) + 1000
-      }));
-    }, 50); // Very fast - every 50ms
-    
-    // Available Docs - rapid increment
-    const availableDocsInterval = setInterval(() => {
-      setAnimatedStats(prev => ({
-        ...prev,
-        availableDocs: Math.floor(Math.random() * 99999) + 1000
-      }));
-    }, 100); // Fast - every 100ms
-    
-    // Document Types - rapid increment
-    const documentTypesInterval = setInterval(() => {
-      setAnimatedStats(prev => ({
-        ...prev,
-        documentTypes: Math.floor(Math.random() * 20) + 1
-      }));
-    }, 120); // Medium speed - every 120ms
-    
-    // Years - rapid increment
-    const yearsFromInterval = setInterval(() => {
-      setAnimatedStats(prev => ({
-        ...prev,
-        yearsFrom: Math.floor(Math.random() * 50) + 1970
-      }));
-    }, 80); // Fast - every 80ms
-    
-    const yearsToInterval = setInterval(() => {
-      setAnimatedStats(prev => ({
-        ...prev,
-        yearsTo: Math.floor(Math.random() * 30) + 2020
-      }));
-    }, 80); // Fast - every 80ms
-    
-    intervals.push(totalDocsInterval, availableDocsInterval, documentTypesInterval, yearsFromInterval, yearsToInterval);
-    setAnimationIntervals(intervals);
-  };
-
-  // Stop rapid counters
-  const stopRapidCounters = () => {
-    animationIntervals.forEach(interval => clearInterval(interval));
-    setAnimationIntervals([]);
-  };
-
   // Scroll to top function
   const scrollToTop = () => {
     window.scrollTo({
@@ -701,23 +640,6 @@ const Home = () => {
       setTypes(apiData.document_types || []);
       setSearchCriteria(["id:", "type:", "date:", "available:", "source:"]);
 
-      // Stop rapid counters and set real values when data loads
-      stopRapidCounters();
-      
-      const totalDocs = parseInt(apiData.total_docs) || 0;
-      const availableDocs = parseInt(apiData.available_docs) || 0;
-      const documentTypesCount = (apiData.document_types || []).length;
-      const yearsFrom = parseInt(apiData.years_covered?.from) || 0;
-      const yearsTo = parseInt(apiData.years_covered?.to) || 0;
-
-      // Set real values
-      setAnimatedStats({
-        totalDocs: totalDocs,
-        availableDocs: availableDocs,
-        documentTypes: documentTypesCount,
-        yearsFrom: yearsFrom,
-        yearsTo: yearsTo
-      });
     }
   }, [apiData]);
 
@@ -727,26 +649,6 @@ const Home = () => {
       setLoading(isLoading);
     }
   }, [isLoading, currentUrlQuery]);
-
-  // Start rapid counters when loading starts (always when data is loading)
-  useEffect(() => {
-    if (isLoading) {
-      // Reset to 0 first
-      setAnimatedStats({
-        totalDocs: 0,
-        availableDocs: 0,
-        documentTypes: 0,
-        yearsFrom: 0,
-        yearsTo: 0
-      });
-      // Start rapid counting
-      startRapidCounters();
-    } else if (!isLoading) {
-      // Stop rapid counters when not loading
-      stopRapidCounters();
-    }
-  }, [isLoading]);
-
   // Sync error state
   useEffect(() => {
     if (queryError) {
@@ -756,13 +658,6 @@ const Home = () => {
       setError(null);
     }
   }, [queryError]);
-
-  // Cleanup intervals on unmount
-  useEffect(() => {
-    return () => {
-      stopRapidCounters();
-    };
-  }, []);
 
   // Scroll listener for scroll to top button
   useEffect(() => {
