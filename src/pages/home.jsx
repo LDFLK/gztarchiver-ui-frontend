@@ -524,6 +524,17 @@ const Home = () => {
     console.log(type)
   }
 
+  const handleRandomSearch = () => {
+    if (types.length > 0) {
+      // Randomly select a type from the types array
+      const randomType = types[Math.floor(Math.random() * types.length)];
+      // Format it the same way as handleTypes does
+      const formattedQuery = `type:${randomType.replace(/ /g, "_").toUpperCase()}`;
+      // Trigger the search
+      updateUrlQuery(formattedQuery);
+    }
+  }
+
   const handleCriteria = (criteria) => {
     setSearchInput(criteria);
   }
@@ -780,14 +791,14 @@ const Home = () => {
                     }`}
                   >
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold dark:text-white text-gray-700 mb-4 sm:mb-6">
-                      Sri Lankan Government
+                      Sri Lankan Open
                       <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
                     </h2>
                     <p className="text-sm sm:text-lg md:text-xl dark:text-gray-300 text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
-                      Advanced search and analysis platform for government documents, 
-                      enabling transparency and data-driven insights.
+                      Advanced search and analysis platform for open documents, 
+                      enabling connections and data-driven insights.
                     </p>
                   </div>
                 )}
@@ -817,16 +828,28 @@ const Home = () => {
                               <X className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
                       </button>
                     )}
-                    <button
-                      onClick={toggleQuickSearch}
-                            className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} rounded-lg transition-colors hover:cursor-pointer ${
-                        showQuickSearch
-                                ? "text-cyan-400 bg-cyan-400/10"
-                                : "dark:text-gray-400 text-gray-400 hover:text-cyan-300"
-                      }`}
-                    >
-                            <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
-                    </button>
+                    <div className="relative group">
+                      <button
+                        onClick={toggleQuickSearch}
+                              className={`${selectedDocumentId ? 'p-1' : 'p-1 sm:p-2'} rounded-lg transition-colors hover:cursor-pointer ${
+                          showQuickSearch
+                                  ? "text-cyan-400 bg-cyan-400/10"
+                                  : "dark:text-gray-400 text-gray-400 hover:text-cyan-300"
+                        }`}
+                      >
+                              <FileSearch className={`${selectedDocumentId ? 'w-3 h-3' : 'w-3 h-3 sm:w-4 sm:h-4'}`} />
+                      </button>
+                      {/* Tooltip - appears below icon */}
+                      {!showQuickSearch && (
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                          Quick search for documents
+                          {/* Tooltip arrow pointing to icon */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-0">
+                            <div className="border-4 border-transparent border-b-gray-900 dark:border-b-gray-800"></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   <button
                     onClick={() => handleSearch(1)}
                             className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 dark:text-white text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
@@ -837,6 +860,36 @@ const Home = () => {
                       </div>
                     </div>
                 </div>
+
+                {/* Take me somewhere button */}
+                {!currentUrlQuery && !showQuickSearch && (
+                  <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-4 sm:mb-6 px-2 flex gap-3 justify-center mt-4`}>
+                  <div className="relative group">
+                    <button
+                      onClick={handleRandomSearch}
+                      disabled={types.length === 0}
+                      className={`px-4 py-2 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 hover:cursor-pointer whitespace-nowrap ${
+                        types.length === 0
+                          ? 'dark:text-gray-600 text-gray-300 cursor-not-allowed'
+                          : 'text-cyan-400 hover:text-cyan-500'
+                      }`}
+                    >
+                      Take me somewhere
+                    </button>
+                    {/* Tooltip - side message box */}
+                    <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-1 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                      Explore random documents
+                      {/* Tooltip arrow pointing to button */}
+                      <div className="absolute right-full top-1/2 transform -translate-y-1/2 -translate-x-0">
+                        <div className="border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+
+                )}
+                
 
                   {/* Quick Search Panel */}
                 <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-2 quick-search-container`}>
@@ -1109,7 +1162,17 @@ const Home = () => {
                           </p>
                           </div>
                           {connection.relatedEntityId !== "gov_01" && (
-                            <SquareArrowOutUpRight className="text-cyan-400 w-4 h-4 hover:scale-110 transition-transform" />
+                            <div className="relative group">
+                              <SquareArrowOutUpRight className="text-cyan-400 w-4 h-4 hover:scale-110 transition-transform" />
+                              {/* Tooltip - appears from left side */}
+                              <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-2 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                Open document
+                                {/* Tooltip arrow pointing to icon */}
+                                <div className="absolute left-full top-1/2 transform -translate-y-1/2 translate-x-0">
+                                  <div className="border-4 border-transparent border-l-gray-900 dark:border-l-gray-800"></div>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
