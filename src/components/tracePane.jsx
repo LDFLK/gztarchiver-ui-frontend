@@ -1267,40 +1267,53 @@ return (
             <button
               onClick={handleZoomIn}
               className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
-              title="Zoom In"
             >
               <ZoomIn className="w-5 h-5" />
             </button>
             <button
               onClick={handleZoomOut}
               className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
-              title="Zoom Out"
             >
               <ZoomOut className="w-5 h-5" />
             </button>
-            <button
-              onClick={handleResetView}
-              className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
-              title="Reset View"
-            >
-              <Shrink className="w-5 h-5" />
-            </button>
-            {selectedNodeId && (
+            <div className="relative group">
               <button
-                onClick={() => setIsIsolationMode((prev) => !prev)}
-                className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
-                  isIsolationMode
-                    ? "bg-cyan-500 dark:text-white text-white hover:bg-cyan-600"
-                    : "dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
-                }`}
-                title={
-                  isIsolationMode
-                    ? "Exit Isolation Mode"
-                    : "Isolate Selected Node"
-                }
+                onClick={handleResetView}
+                className="p-2 dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
               >
-                <ScanEye className="w-5 h-5" />
+                <Shrink className="w-5 h-5" />
               </button>
+              {/* Tooltip - appears from left side */}
+              <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-2 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                Shrink the graph
+                {/* Tooltip arrow pointing to icon */}
+                <div className="absolute left-full top-1/2 transform -translate-y-1/2 translate-x-0">
+                  <div className="border-4 border-transparent border-l-gray-900 dark:border-l-gray-800"></div>
+                </div>
+              </div>
+            </div>
+            {selectedNodeId && (
+              <div className="relative group">
+                <button
+                  onClick={() => setIsIsolationMode((prev) => !prev)}
+                  className={`p-2 rounded-lg transition-colors hover:cursor-pointer ${
+                    isIsolationMode
+                      ? "bg-cyan-500 dark:text-white text-white hover:bg-cyan-600"
+                      : "dark:hover:bg-gray-800/50 hover:bg-gray-200 rounded-lg transition-colors hover:cursor-pointer dark:text-gray-300 text-gray-600 dark:hover:text-cyan-400 hover:text-gray-900"
+                  }`}
+                 
+                >
+                  <ScanEye className="w-5 h-5" />
+                </button>
+                {/* Tooltip - appears from left side */}
+                <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-2 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  Isolate and explore documents
+                  {/* Tooltip arrow pointing to icon */}
+                  <div className="absolute left-full top-1/2 transform -translate-y-1/2 translate-x-0">
+                    <div className="border-4 border-transparent border-l-gray-900 dark:border-l-gray-800"></div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
