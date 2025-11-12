@@ -524,6 +524,17 @@ const Home = () => {
     console.log(type)
   }
 
+  const handleRandomSearch = () => {
+    if (types.length > 0) {
+      // Randomly select a type from the types array
+      const randomType = types[Math.floor(Math.random() * types.length)];
+      // Format it the same way as handleTypes does
+      const formattedQuery = `type:${randomType.replace(/ /g, "_").toUpperCase()}`;
+      // Trigger the search
+      updateUrlQuery(formattedQuery);
+    }
+  }
+
   const handleCriteria = (criteria) => {
     setSearchInput(criteria);
   }
@@ -780,14 +791,14 @@ const Home = () => {
                     }`}
                   >
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold dark:text-white text-gray-700 mb-4 sm:mb-6">
-                      Sri Lankan Government
+                      Sri Lankan Open
                       <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
                     </h2>
                     <p className="text-sm sm:text-lg md:text-xl dark:text-gray-300 text-gray-600 max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
-                      Advanced search and analysis platform for government documents, 
-                      enabling transparency and data-driven insights.
+                      Advanced search and analysis platform for open documents, 
+                      enabling connections and data-driven insights.
                     </p>
                   </div>
                 )}
@@ -837,6 +848,26 @@ const Home = () => {
                       </div>
                     </div>
                 </div>
+
+                {/* Take me somewhere button */}
+                {!currentUrlQuery && !showQuickSearch && (
+                  <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-4 sm:mb-6 px-2 flex gap-3 justify-center mt-2`}>
+                  <button
+                    onClick={handleRandomSearch}
+                    disabled={types.length === 0}
+                    className={`px-4 py-2 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 hover:cursor-pointer whitespace-nowrap ${
+                      types.length === 0
+                        ? 'dark:bg-gray-800 bg-gray-200 dark:text-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'text-cyan-400 hover:text-cyan-500'
+                    }`}
+                  >
+                    Take me somewhere
+                  </button>
+                  
+                </div>
+
+                )}
+                
 
                   {/* Quick Search Panel */}
                 <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-2 quick-search-container`}>
