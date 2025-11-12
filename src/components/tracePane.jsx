@@ -1285,7 +1285,7 @@ return (
               </button>
               {/* Tooltip - appears from left side */}
               <div className="absolute right-full top-1/2 transform -translate-y-1/2 mr-2 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                Shrink the graph
+                Center the graph
                 {/* Tooltip arrow pointing to icon */}
                 <div className="absolute left-full top-1/2 transform -translate-y-1/2 translate-x-0">
                   <div className="border-4 border-transparent border-l-gray-900 dark:border-l-gray-800"></div>
