@@ -47,7 +47,7 @@ const SearchResults = ({
           <div className={`${isShrunked ? 'mb-2' : 'mb-4 sm:mb-6'} flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
             <div>
               <h2 className={`font-bold dark:text-white text-gray-900 mb-2 ${isShrunked ? 'text-sm' : 'text-xl sm:text-2xl'}`}>
-                Search Results for "{query}"
+                Search Results for "{query.replace(/^type:/, '').replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}"
               </h2>
               {pagination.total_count > 0 && (
                 <p className={`dark:text-gray-400 text-gray-600 font-light ${isShrunked ? 'text-xs' : 'text-xs sm:text-sm'}`}>
