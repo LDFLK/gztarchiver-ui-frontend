@@ -784,7 +784,7 @@ const Home = () => {
                 {/* Hero Section */}
                 {!currentUrlQuery && (
                   <div 
-                    className={`text-center mb-8 sm:mb-12 px-2 transition-all duration-500 ease-in-out ${
+                    className={`text-center mb-8 sm:mb-8 px-2 transition-all duration-500 ease-in-out ${
                       showQuickSearch 
                         ? 'scale-90' 
                         : 'scale-100 translate-y-0 opacity-100'
@@ -804,10 +804,10 @@ const Home = () => {
                 )}
 
                 {/* Search Section */}
-                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 px-2 quick-search-container`}>
+                <div className={`${selectedDocumentId ? 'max-w-2xl' : 'max-w-4xl'} mx-auto mb-6 sm:mb-8 quick-search-container`}>
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl sm:rounded-2xl blur-xl"></div>
-                    <div className={`relative dark:bg-gray-900/80 bg-white backdrop-blur-sm dark:border dark:border-gray-800 rounded-xl sm:rounded-2xl ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
+                    <div className={`relative dark:bg-gray-900/80 bg-white backdrop-blur-sm dark:border dark:border-gray-800 rounded-full ${selectedDocumentId ? 'p-1' : 'p-1.5 sm:p-2'}`}>
                       <div className="flex items-center">
                         <Search className={`${selectedDocumentId ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} dark:text-gray-400 text-gray-400 ${selectedDocumentId ? 'ml-2' : 'ml-2 sm:ml-4'}`} />
                   <input
@@ -842,7 +842,7 @@ const Home = () => {
                       {/* Tooltip - appears below icon */}
                       {!showQuickSearch && (
                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 text-xs font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                          Quick search for documents
+                          Quick search
                           {/* Tooltip arrow pointing to icon */}
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-0">
                             <div className="border-4 border-transparent border-b-gray-900 dark:border-b-gray-800"></div>
@@ -852,7 +852,7 @@ const Home = () => {
                     </div>
                   <button
                     onClick={() => handleSearch(1)}
-                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 dark:text-white text-white font-medium rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
+                            className={`${selectedDocumentId ? 'px-3 py-1.5 text-xs' : 'px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-base'} bg-gradient-to-r from-cyan-500 to-blue-500 dark:text-white text-white font-medium rounded-full hover:from-cyan-600 hover:to-blue-600 transition-colors duration-200 hover:cursor-pointer whitespace-nowrap`}
                   >
                     <span>Search</span>
                   </button>
