@@ -123,7 +123,7 @@ const SearchResults = ({
                     <div className="dark:text-gray-300 text-gray-600 text-xs sm:text-sm mb-3 break-words">
                       <span className="block sm:inline">
                         Document Type:{" "}
-                        <span className="dark:text-cyan-400 text-gray-600 font-medium">
+                        <span className="dark:text-cyan-400 text-gray-600 font-medium relative inline-block">
                           {item.document_type
                             ? item.document_type
                                 .toLowerCase()
@@ -134,6 +134,12 @@ const SearchResults = ({
                                 )
                                 .join(" ")
                             : "Unknown"}
+                          {item.availability === "Unavailable" && (
+                            <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-10">
+                              This document was not found on the official source
+                              <span className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></span>
+                            </span>
+                          )}
                         </span>
                       </span>
                     </div>

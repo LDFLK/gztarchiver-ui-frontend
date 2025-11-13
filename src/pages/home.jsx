@@ -791,7 +791,7 @@ const Home = () => {
                     }`}
                   >
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold dark:text-white text-gray-700 mb-4 sm:mb-6">
-                      Sri Lankan Open
+                      Sri Lanka Open
                       <span className="block bg-gradient-to-r from-cyan-400 to-cyan-300 bg-clip-text text-transparent">
                         Document Archive
                       </span>
