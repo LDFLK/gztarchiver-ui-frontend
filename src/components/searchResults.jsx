@@ -150,20 +150,6 @@ const SearchResults = ({
                       <span className="dark:text-gray-300 text-gray-600">
                         Date: <span className="dark:text-cyan-400 text-gray-600">{item.document_date || "N/A"}</span>
                       </span>
-                      {item.source && (
-                        <a
-                          href={item.source}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`transition-all duration-200 ${
-                            item.availability === "Unavailable"
-                              ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
-                          }`}
-                        >
-                          Source
-                        </a>
-                      )}
                       {item.download_url && (
                         <a
                           href={item.download_url}
@@ -178,7 +164,7 @@ const SearchResults = ({
                           Download
                         </a>
                       )}
-                      {item.file_path && (
+                      {/* {item.file_path && (
                         <a
                           href={item.file_path}
                           target="_blank"
@@ -191,7 +177,7 @@ const SearchResults = ({
                         >
                           View
                         </a>
-                      )}
+                      )} */}
                       <a
                         href="#"
                         onClick={(e) => handleTraceClick(e, item.document_id)}
@@ -204,6 +190,11 @@ const SearchResults = ({
                         Explore Connections
                       </a>
                     </div>
+                    {item.source && (
+                      <div className="mt-3 text-xs dark:text-gray-300 text-gray-600">
+                        Source: <span className="dark:text-cyan-400 text-gray-600 break-all">{item.source}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
