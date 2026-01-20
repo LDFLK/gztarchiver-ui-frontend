@@ -18,6 +18,8 @@ const SearchResults = ({
 }) => {
   const limitOptions = [10, 20, 50, 100];
 
+  const baseUrlForDocumentAccess = window?.configs?.baseUrlForDocumentAccess ? window.configs.baseUrlForDocumentAccess : "/";
+
   const handleTraceClick = (e, documentId) => {
     e.preventDefault();
     onTraceClick(documentId);
@@ -164,9 +166,9 @@ const SearchResults = ({
                           Source
                         </a>
                       )}
-                      {item.download_url && (
+                      {item.file_path && (
                         <a
-                          href={item.download_url}
+                          href={baseUrlForDocumentAccess + "/" + item.file_path + "?raw=true"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`transition-all duration-200 ${
@@ -180,7 +182,7 @@ const SearchResults = ({
                       )}
                       {item.file_path && (
                         <a
-                          href={item.file_path}
+                          href={baseUrlForDocumentAccess + "/" + item.file_path}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`transition-all duration-200 ${
