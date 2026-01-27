@@ -17,6 +17,7 @@ const SearchResults = ({
   isShrunked = false,
 }) => {
   const limitOptions = [10, 20, 50, 100];
+  const baseUrlForDocumentAccess = window?.configs?.baseUrlForDocumentAccess ?? "/";
 
   const handleTraceClick = (e, documentId) => {
     e.preventDefault();
@@ -136,7 +137,7 @@ const SearchResults = ({
                             : "Unknown"}
                           {item.availability === "Unavailable" && (
                             <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-10">
-                              This document was not found on the official source
+                              This document was not found on the official source at the time of archiving
                               <span className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></span>
                             </span>
                           )}
@@ -150,24 +151,9 @@ const SearchResults = ({
                       <span className="dark:text-gray-300 text-gray-600">
                         Date: <span className="dark:text-cyan-400 text-gray-600">{item.document_date || "N/A"}</span>
                       </span>
-                      {item.source && (
+                      {item.file_path && (
                         <a
-                          href={item.source}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`transition-all duration-200 ${
-                            item.availability === "Unavailable"
-                              ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
-                          }`}
-                        >
-                          Source
-                        </a>
-                      )}
-                      {item.download_url && (
-                        <a
-                          href={item.download_url}
-                          target="_blank"
+                          href={`${baseUrlForDocumentAccess.replace(/\/+$/, "")}/${item.file_path.replace(/^\/+/, "")}?raw=true`}
                           rel="noopener noreferrer"
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
@@ -176,20 +162,6 @@ const SearchResults = ({
                           }`}
                         >
                           Download
-                        </a>
-                      )}
-                      {item.file_path && (
-                        <a
-                          href={item.file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`transition-all duration-200 ${
-                            item.availability === "Unavailable"
-                              ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
-                          }`}
-                        >
-                          View
                         </a>
                       )}
                       <a
@@ -204,6 +176,23 @@ const SearchResults = ({
                         Explore Connections
                       </a>
                     </div>
+                    {item.source && (
+                      <div className="mt-3 text-xs dark:text-gray-300 text-gray-600">
+                      Source:{" "}
+                      <a
+                        href={item.source !== "N/A" ? item.source : undefined} // disables link if 'N/A'
+                        target={item.source !== "N/A" ? "_blank" : undefined}
+                        rel={item.source !== "N/A" ? "noopener noreferrer" : undefined}
+                        className={`break-all underline transition-colors ${
+                          item.source === "N/A"
+                            ? "text-gray-500 cursor-not-allowed"
+                            : "dark:text-white text-gray-600 dark:hover:text-cyan-400 hover:text-cyan-400"
+                        }`}
+                      >
+                        {item.source}
+                      </a>
+                    </div>
+                    )}
                   </div>
                 </div>
               </div>
