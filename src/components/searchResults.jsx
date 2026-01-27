@@ -137,7 +137,7 @@ const SearchResults = ({
                             : "Unknown"}
                           {item.availability === "Unavailable" && (
                             <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-10">
-                              This document was not found on the official source
+                              This document was not found on the official source at the time of archiving
                               <span className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></span>
                             </span>
                           )}
@@ -178,11 +178,20 @@ const SearchResults = ({
                     </div>
                     {item.source && (
                       <div className="mt-3 text-xs dark:text-gray-300 text-gray-600">
-                        Source: <a
-                        href={item.source}
-                        target="_blank"
-                        className="dark:text-white text-gray-600 break-all underline dark:hover:text-cyan-400 hover:text-cyan-400">{item.source}</a>
-                      </div>
+                      Source:{" "}
+                      <a
+                        href={item.source !== "N/A" ? item.source : undefined} // disables link if 'N/A'
+                        target={item.source !== "N/A" ? "_blank" : undefined}
+                        rel={item.source !== "N/A" ? "noopener noreferrer" : undefined}
+                        className={`break-all underline transition-colors ${
+                          item.source === "N/A"
+                            ? "text-gray-500 cursor-not-allowed"
+                            : "dark:text-white text-gray-600 dark:hover:text-cyan-400 hover:text-cyan-400"
+                        }`}
+                      >
+                        {item.source}
+                      </a>
+                    </div>
                     )}
                   </div>
                 </div>
