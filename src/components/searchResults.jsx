@@ -17,6 +17,7 @@ const SearchResults = ({
   isShrunked = false,
 }) => {
   const limitOptions = [10, 20, 50, 100];
+  const baseUrlForDocumentAccess = window?.configs?.baseUrlForDocumentAccess ?? "/";
 
   const handleTraceClick = (e, documentId) => {
     e.preventDefault();
@@ -150,10 +151,9 @@ const SearchResults = ({
                       <span className="dark:text-gray-300 text-gray-600">
                         Date: <span className="dark:text-cyan-400 text-gray-600">{item.document_date || "N/A"}</span>
                       </span>
-                      {item.download_url && (
+                      {item.file_path && (
                         <a
-                          href={item.download_url}
-                          target="_blank"
+                          href={`${baseUrlForDocumentAccess.replace(/\/+$/, "")}/${item.file_path.replace(/^\/+/, "")}?raw=true`}
                           rel="noopener noreferrer"
                           className={`transition-all duration-200 ${
                             item.availability === "Unavailable"
@@ -164,20 +164,6 @@ const SearchResults = ({
                           Download
                         </a>
                       )}
-                      {/* {item.file_path && (
-                        <a
-                          href={item.file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`transition-all duration-200 ${
-                            item.availability === "Unavailable"
-                              ? "text-gray-500 cursor-not-allowed"
-                              : "dark:text-cyan-400 text-cyan-400 dark:hover:text-white hover:text-gray-900"
-                          }`}
-                        >
-                          View
-                        </a>
-                      )} */}
                       <a
                         href="#"
                         onClick={(e) => handleTraceClick(e, item.document_id)}
@@ -192,7 +178,10 @@ const SearchResults = ({
                     </div>
                     {item.source && (
                       <div className="mt-3 text-xs dark:text-gray-300 text-gray-600">
-                        Source: <span className="dark:text-cyan-400 text-gray-600 break-all">{item.source}</span>
+                        Source: <a
+                        href={item.source}
+                        target="_blank"
+                        className="dark:text-white text-gray-600 break-all underline dark:hover:text-cyan-400 hover:text-cyan-400">{item.source}</a>
                       </div>
                     )}
                   </div>
