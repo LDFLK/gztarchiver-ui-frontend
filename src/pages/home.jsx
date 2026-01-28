@@ -471,9 +471,7 @@ const Home = () => {
   };
 
   const handleSearch = (page = 1) => {
-    console.log(searchInput)
     const formattedSearchInput = formatSearchInput(searchInput);
-    console.log(`formatted input -> ${formattedSearchInput}`)
     updateUrlQuery(formattedSearchInput);
     // Reset to page 1 for a new search term
     if (currentUrlQuery !== formattedSearchInput) {
