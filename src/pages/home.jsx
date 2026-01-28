@@ -962,7 +962,7 @@ const Home = () => {
                           <div className="border-t dark:border-gray-700 border-gray-300 pt-3 sm:pt-4">
                             <p className="text-xs sm:text-sm dark:text-gray-400 text-gray-600 mb-2 sm:mb-3 font-medium">Search Examples:</p>
                             <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                              {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"'].map((example) => (
+                              {["date:2015", "type:people", "id:2030-05", "available:yes", '"exact phrase"', "date:last-year", "date:last-x-days", "date:this-year"].map((example) => (
                                         <span
                                   key={example}
                                   className="px-1.5 py-1 dark:bg-gray-800 bg-gray-100 dark:text-gray-300 text-gray-500 rounded-lg text-xs font-medium"
