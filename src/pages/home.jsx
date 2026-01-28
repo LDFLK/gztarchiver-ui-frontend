@@ -1059,6 +1059,17 @@ const Home = () => {
                 <p className="dark:text-gray-400 text-gray-500 text-xs sm:text-sm">
                     <span className="dark:hover:dark:text-white dark:text-gray-400 text-gray-500 hover:text-gray-900">Open Data</span> © {new Date().getFullYear()}. All rights reserved.
                   </p>
+                  <p className="dark:text-gray-400 text-gray-500 text-xs">
+              Licensed under{" "}
+              <a
+                href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dark:text-cyan-400 hover:underline"
+              >
+                CC BY-NC-SA 4.0
+              </a>
+            </p>
                 </a>
                 
                 {/* Social Media Links */}
