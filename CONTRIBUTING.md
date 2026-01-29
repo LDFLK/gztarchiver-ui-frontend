@@ -63,9 +63,9 @@ Fixes #123
 
 ### Coding Standards
 
-- Follow PEP 8 for Python code
-- Run `black` for formatting
-- Run `flake8` for linting
+- Follow the project's JavaScript and React coding standards.
+- Run a linter (like ESLint) to check for issues.
+- Use a formatter (like Prettier) to ensure consistent style.
 
 
 ### Testing
