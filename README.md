@@ -27,7 +27,7 @@ Please see our [Code of Conduct](CODE_OF_CONDUCT.md).
 Please see our [Security Policy](SECURITY.md).
 ## License
  - Distributed under the Apache 2.0 License. See [License](LICENSE) for more information.
- - Content licensed under Creative Commance License: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+ - Content licensed under Creative Commons License: [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 ## References
 - Checkout our [Archives](https://archives.opendata.lk/) application. We serve this application using this service.
 - Checkout our [Gztarchiver](https://github.com/LDFLK/gztarchiver) for more information. We use this tool to archive and gather information for this service.
