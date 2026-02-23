@@ -1,14 +1,46 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script type="module" src="/config.js"></script>
-    <title>Archives</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/logo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/config.js"></script>
+  <!-- Google Analytics -->
+  <script>
+    (function () {
+      // Skip if running on localhost
+      const hostname = location.hostname;
+      if (hostname == 'localhost' || hostname === '127.0.0.1') {
+        console.log('[Dev] Google Analytics not loaded - running on ' + hostname);
+        return;
+      }
+
+      // Skip if measurement ID is not configured
+      const measurementId = window.configs && window.configs.gaMeasurementId;
+      if (!measurementId || measurementId == "") {
+        console.log('[Dev] Google Analytics not loaded - no measurement ID configured');
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+      document.head.appendChild(script);
+
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', measurementId, { send_page_view: false });
+
+    })();
+  </script>
+  <title>Archives</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>
