@@ -8,7 +8,7 @@ export const usePageTracking = () => {
         const pagePath = location.pathname + location.search + location.hash;
 
         // Skip tracking if measurement ID is not configured in config.js
-        const measurementId = window.configs && window.configs.gaMeasurementId;
+        const measurementId = window.configs?.gaMeasurementId;
         if (!measurementId) {
             console.warn("⚠️ Measurement ID is not available");
             return;

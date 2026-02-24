@@ -11,21 +11,21 @@
     (function () {
       // Skip if running on localhost
       const hostname = location.hostname;
-      if (hostname == 'localhost' || hostname === '127.0.0.1') {
-        console.log('[Dev] Google Analytics not loaded - running on ' + hostname);
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        console.log(`[Dev] Google Analytics not loaded - running on ${hostname}`);
         return;
       }
 
       // Skip if measurement ID is not configured
       const measurementId = window.configs && window.configs.gaMeasurementId;
-      if (!measurementId || measurementId == "") {
+      if (!measurementId) {
         console.log('[Dev] Google Analytics not loaded - no measurement ID configured');
         return;
       }
 
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
       document.head.appendChild(script);
 
       window.dataLayer = window.dataLayer || [];
