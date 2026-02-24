@@ -9,7 +9,7 @@ export const usePageTracking = () => {
 
         // Skip tracking if measurement ID is not configured in config.js
         const measurementId = window.configs?.gaMeasurementId;
-        if (!measurementId) {
+        if (!measurementId || measurementId.trim() == "") {
             console.warn("⚠️ Measurement ID is not available");
             return;
         }
