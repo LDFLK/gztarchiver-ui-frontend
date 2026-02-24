@@ -26,7 +26,8 @@ Create a `config.js` file in the `public` directory
 ```bash
 window.configs = {
   apiUrl: '<ARCHIVES_BACKEND_URL>',
-  baseUrlForDocumentAccess: 'https://github.com/LDFLK/gztarchiver-storage/blob/main'
+  baseUrlForDocumentAccess: '<BASE-URL-FOR-DOCUMENT-ACCESS>',
+  gaMeasurementId: "<GA_MEASUREMENT_ID>"
 };
 
 ```
